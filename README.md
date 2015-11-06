@@ -20,9 +20,9 @@ sudo -s
 cp libftd2xx.* /usr/local/lib
 chmod 0755 /usr/local/lib/libftd2xx.so.1.3.6
 ln -sf /usr/local/lib/libftd2xx.so.1.3.6 /usr/local/lib/libftd2xx.so
+cd ..
+cp ftd2xx.h WinTypes.h /usr/local/include/
 exit
-
-
 ```
 
 ### Build steps ###
