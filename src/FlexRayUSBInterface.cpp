@@ -1,37 +1,4 @@
-/*
- * flexRayUSBInterface.cpp
- *
- *  Created on: 18 Dec 2013
- *      Author: alex
- */
-
 #include "FlexRayUSBInterface.h"
-#include <stdio.h>
-#include <iostream>
-#include <ios>
-#include <iomanip>
-
-#include <QSettings>
-#include <QDir>
-#include <QTextStream>
-#include "WinTypes.h"
-//#include "CommunicationData.h"
-#include "ftd2xx.h"
-#include <unistd.h>
-
-/*
- *
- */
-
-/*
- * */
-namespace eu
-{
-namespace myode
-{
-namespace myorobot
-{
-
 
 FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThread(0)
 {
@@ -57,7 +24,7 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
      */
     
     initSafeCommandFrame(); //initialise data to be send to motors before proper data is set by application
-    std::cout<<"Creating FlexRay USB interface with "<<cycleTimeInMilliSeconds<<"ms data update rate "<<endl;
+    std::cout<<"Creating FlexRay USB interface with "<<cycleTimeInMilliSeconds<<"ms data update rate "<<std::endl;
     
     if(CheckDeviceConnected(&dwNumDevs)==true)
     {
@@ -69,7 +36,7 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
 		{
 		    if(ConfigureSPI(&ftHandle, dwClockDivisor)==true)
 		    {
-			std::cout<<"Configuration OK"<<endl;
+			std::cout<<"Configuration OK"<<std::endl;
 			mFTDIReady=1;
 			std::cout<<"EMITTING READY";
 			emit FlexRayReady(true);
@@ -79,23 +46,23 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
 		}//TestMPSSE
 		else
 		{
-		    std::cout<<"device test failed"<<endl;
+		    std::cout<<"device test failed"<<std::endl;
 		}
 	    }//OpenPortAndConfigureMPSSE
 	    else
 	    {
-		std::cout<<"open port failed"<<endl;
-		std::cout<<" Perhaps the kernel automatically loaded another driver for the   FTDI USB device, from command line try: "<<endl<<"sudo rmmod ftdi_sio"<<endl<<"sudo rmmod usbserial"<<endl;
+		std::cout<<"open port failed"<<std::endl;
+		std::cout<<" Perhaps the kernel automatically loaded another driver for the   FTDI USB device, from command line try: "<<std::endl<<"sudo rmmod ftdi_sio"<<std::endl<<"sudo rmmod usbserial"<<std::endl;
 	    }
 	}//GetDeviceInfo
 	else
 	{
-	    std::cout<<"device info failed"<<endl;
+	    std::cout<<"device info failed"<<std::endl;
 	}
     } //CheckDeviceConnected
     else
     {
-	std::cout<<"device not connected"<<endl;
+	std::cout<<"device not connected"<<std::endl;
     }
     
     if (mFTDIReady==1)
@@ -106,10 +73,10 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
 	
 	//create timer with current cyclic time
 	QTimer* timer = new QTimer(0);
-	std::cout<<"Setting communication timer to "<<mCycleTime<<" ms."<<endl;
+	std::cout<<"Setting communication timer to "<<mCycleTime<<" ms."<<std::endl;
 	timer->setInterval(mCycleTime);
 	
-	std::cout<<"Timers created"<<endl;
+	std::cout<<"Timers created"<<std::endl;
 	
 	//let timer run in its own thread this thread
 	timer->moveToThread(timerThread);
@@ -143,7 +110,7 @@ void FlexRayUSBInterface::initSafeCommandFrame()
     
     // Command all motors connected to all Ganglions into disabled mode, also set to raw mode with 0% pwm activation
     
-    std::cout<<endl<<endl<<endl<<"CREATING SAFE COMMAND FRAME!"<<endl;
+    std::cout<<std::endl<<std::endl<<std::endl<<"CREATING SAFE COMMAND FRAME!"<<std::endl;
     for(int j=0;j<3;j++)
     {
 	for(int i=0;i<4;i++)
@@ -181,20 +148,12 @@ void FlexRayUSBInterface::initSafeCommandFrame()
     InitControlParams.params.pidParameters.lastError = 0;	// float32
     InitControlParams.params.pidParameters.IntegralPosMax = 0;	// float32
     InitControlParams.params.pidParameters.IntegralNegMax = 0;	// float32
-    std::cout<<"Init Data Set."<<endl;
+    std::cout<<"Init Data Set."<<std::endl;
     
-    std::cout<<"Updating Command Frame"<<endl;
+    std::cout<<"Updating Command Frame"<<std::endl;
     sendCommandFrame(InitCommandFrame1, InitCommandFrame2, &InitControlParams);
     
 }
-
-
-
-/* ! \brief slot calls data exchange method.
- *
- *	comsCommandFrame CommandFrame1[6]; //for ganglion 1,2,3,4,5,6
- *	control_Parameters_t ControlParams; //motor control parameters
- */
 
 void FlexRayUSBInterface::sendAllCommandFrames( comsCommandFrame * completeCommandFrames, control_Parameters_t * ControlParams)
 {
@@ -205,25 +164,25 @@ void FlexRayUSBInterface::sendAllCommandFrames( comsCommandFrame * completeComma
     memcpy((void *)&allCommandFrames[0] , completeCommandFrames,sizeof(allCommandFrames) );
     memcpy (& oneSetOfControlParameters,ControlParams ,sizeof(oneSetOfControlParameters));
     
-    //	std::cout<<"Command Frame Size: "<<sizeof(allCommandFrames)<<endl;
-    //	std::cout<<"Parameter Frame Size: "<<sizeof(oneSetOfControlParameters)<<endl;
+    //	std::cout<<"Command Frame Size: "<<sizeof(allCommandFrames)<<std::endl;
+    //	std::cout<<"Parameter Frame Size: "<<sizeof(oneSetOfControlParameters)<<std::endl;
     
     int a=6;
     
     /*
-     std::cout<<"printing several parameters:"<<dec<< a<< endl;
+     std::cout<<"printing several parameters:"<<dec<< a<< std::endl;
      for (int j=0;j<NUMBER_OF_GANGLIONS;j++)
      {
      for (int k=0;k<4; k++)
      {
      
-     std::cout<< "allCommandFrames["<<j<<"].OperationMode["<<k<<"]: "<<(int) allCommandFrames[j].OperationMode[k]<<endl;
-     std::cout<<" allCommandFrames["<<j<<"].ControlMode["<<k<<"]: "<<(int) allCommandFrames[j].ControlMode[k]<<endl;
-     std::cout<<" allCommandFrames["<<j<<"].sp["<<k<<"]: "<<allCommandFrames[j].sp[k]<<endl;
+     std::cout<< "allCommandFrames["<<j<<"].OperationMode["<<k<<"]: "<<(int) allCommandFrames[j].OperationMode[k]<<std::endl;
+     std::cout<<" allCommandFrames["<<j<<"].ControlMode["<<k<<"]: "<<(int) allCommandFrames[j].ControlMode[k]<<std::endl;
+     std::cout<<" allCommandFrames["<<j<<"].sp["<<k<<"]: "<<allCommandFrames[j].sp[k]<<std::endl;
      }
      }
      
-     std::cout<<" oneSetOfControlParameters.timePeriod= "<<oneSetOfControlParameters.timePeriod<<endl;
+     std::cout<<" oneSetOfControlParameters.timePeriod= "<<oneSetOfControlParameters.timePeriod<<std::endl;
      
      */
     
@@ -231,12 +190,6 @@ void FlexRayUSBInterface::sendAllCommandFrames( comsCommandFrame * completeComma
     
 }
 
-/* ! \brief slot calls data exchange method.
- *
- *	comsCommandFrame CommandFrame1[3]; //for ganglion 1,2 and 3
- *	comsCommandFrame CommandFrame2[3]; //for ganglion 4,5 and 6
- *	control_Parameters_t ControlParams; //motor control parameters
- */
 void FlexRayUSBInterface::sendCommandFrame( comsCommandFrame  * CommandFrame1, comsCommandFrame  * CommandFrame2,   control_Parameters_t * ControlParams)
 {
     
@@ -245,7 +198,7 @@ void FlexRayUSBInterface::sendCommandFrame( comsCommandFrame  * CommandFrame1, c
     //experimental change, 13/10/14 AL
     //dataExchangeMutex.lock();
     
-    //std::cout<<"command Frame Updated!"<<endl;
+    //std::cout<<"command Frame Updated!"<<std::endl;
     
     //copy data into local USB send stream, exchange happens during
     //here we need to be careful CommandFramd1 is a pointer, so the size of the pointer is only 4
@@ -261,48 +214,46 @@ void FlexRayUSBInterface::sendCommandFrame( comsCommandFrame  * CommandFrame1, c
     dataExchangeMutex.unlock();
     
     /*
-     //std::cout<<"New FlexRay Command Frame Sent"<<endl;
-     // std::cout<<"Data to be send, set point: "<<CommandFrame1[2].sp[0] <<endl;
+     //std::cout<<"New FlexRay Command Frame Sent"<<std::endl;
+     // std::cout<<"Data to be send, set point: "<<CommandFrame1[2].sp[0] <<std::endl;
      
-     // std::cout<<endl<<"copied data size: "<<dec<< sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME/2 <<"  "<< sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME/2<<"  " << sizeof(control_Parameters_t)<<endl;
-     //std::cout<<"Printing data in dataset[] array"<<endl;
+     // std::cout<<std::endl<<"copied data size: "<<dec<< sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME/2 <<"  "<< sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME/2<<"  " << sizeof(control_Parameters_t)<<std::endl;
+     //std::cout<<"Printing data in dataset[] array"<<std::endl;
      
-     //std::cout<<"Index for control parameter start: "<<sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME<<endl;
+     //std::cout<<"Index for control parameter start: "<<sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME<<std::endl;
      
      int k=0;
-     std::cout<<endl;
+     std::cout<<std::endl;
      for (int j=0;j<DATASETSIZE;j++)
      {
      if ((j%12)==0)
      {
-     std::cout<<endl<<"offset: "<<dec<<(k++)*12<<" :";
+     std::cout<<std::endl<<"offset: "<<dec<<(k++)*12<<" :";
      }
-     //		std::cout<<dec<<std::cout<<"offset: "<<k++<<" : "<<endl;;
+     //		std::cout<<dec<<std::cout<<"offset: "<<k++<<" : "<<std::endl;;
      std::cout<<hex<<"0x"<<dataset[j]<<" ";
      
      
      }
      */
-    //	std::cout<<endl<<"Sending Config Parameters, ControlParams->timePeriod: "<< ControlParams->timePeriod<<endl;
-    //	std::cout<<dec<<&ControlParams->tag<<endl;/*!<Tag to indicate data type when passing the union*/
-    //	std::cout<<&ControlParams->outputPosMax<<endl; /*!< maximum control output in the positive direction in counts, max 4000*/
-    //	std::cout<<&ControlParams->outputNegMax<<endl; /*!< maximum control output in the negative direction in counts, max -4000*/
-    //	std::cout<<&ControlParams->spPosMax<<endl;/*<!Positive limit for the set point.*/
-    //	std::cout<<&ControlParams->spNegMax<<endl;/*<!Negative limit for the set point.*/
-    //	std::cout<<&ControlParams->timePeriod<<endl;/*!<Time period of each control iteration in microseconds.*/
-    //	std::cout<<&ControlParams->radPerEncoderCount<<endl; /*!output shaft rotation (in rad) per encoder count */
-    //	std::cout<<&ControlParams->polyPar[0]<<endl; /*! polynomial fit from displacement (d)  to tendon force (f) f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4 */ //mjp-3rd order?
-    //	std::cout<<&ControlParams->torqueConstant<<endl;
+    //	std::cout<<std::endl<<"Sending Config Parameters, ControlParams->timePeriod: "<< ControlParams->timePeriod<<std::endl;
+    //	std::cout<<dec<<&ControlParams->tag<<std::endl;/*!<Tag to indicate data type when passing the union*/
+    //	std::cout<<&ControlParams->outputPosMax<<std::endl; /*!< maximum control output in the positive direction in counts, max 4000*/
+    //	std::cout<<&ControlParams->outputNegMax<<std::endl; /*!< maximum control output in the negative direction in counts, max -4000*/
+    //	std::cout<<&ControlParams->spPosMax<<std::endl;/*<!Positive limit for the set point.*/
+    //	std::cout<<&ControlParams->spNegMax<<std::endl;/*<!Negative limit for the set point.*/
+    //	std::cout<<&ControlParams->timePeriod<<std::endl;/*!<Time period of each control iteration in microseconds.*/
+    //	std::cout<<&ControlParams->radPerEncoderCount<<std::endl; /*!output shaft rotation (in rad) per encoder count */
+    //	std::cout<<&ControlParams->polyPar[0]<<std::endl; /*! polynomial fit from displacement (d)  to tendon force (f) f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4 */ //mjp-3rd order?
+    //	std::cout<<&ControlParams->torqueConstant<<std::endl;
     
     
-    //	std::cout<<dec<<endl<<"--data set in send array"<<endl;
+    //	std::cout<<dec<<std::endl<<"--data set in send array"<<std::endl;
     
     
     
 }
-/* ! \brief sends and receive FlexRay bus data.
- *
- */
+
 int FlexRayUSBInterface::exchangeData()
 {
     DWORD dwNumInputBuffer=0;
@@ -315,12 +266,12 @@ int FlexRayUSBInterface::exchangeData()
      }
      */
     
-    //std::cout<<dec<<" data"<<endl;
+    //std::cout<<dec<<" data"<<std::endl;
     
     if (mFTDIReady)
     {
 	//ready to send
-	//std::cout<<"Sending command frames."<<endl;
+	//std::cout<<"Sending command frames."<<std::endl;
 	
 	dataExchangeMutex.lock();
 	// SEND DATA
@@ -336,12 +287,12 @@ int FlexRayUSBInterface::exchangeData()
 	}
 	else
 	{
-	    //std::cout<<"Data successfully sent via USB!"<<endl;
+	    //std::cout<<"Data successfully sent via USB!"<<std::endl;
 	    // WAIT FOR DATA TO ARRIVE
 	    while(dwNumInputBuffer!=DATASETSIZE*2)
 	    {
 		ftStatus = FT_GetQueueStatus(ftHandle, &dwNumInputBuffer); // get the number of bytes in the device receive buffer
-		//std::cout << t << ": " << dwNumInputBuffer << endl;
+		//std::cout << t << ": " << dwNumInputBuffer << std::endl;
 	    }
 	    
 	    // RECEIVE DATA
@@ -349,7 +300,7 @@ int FlexRayUSBInterface::exchangeData()
 		dwNumInputBuffer = DATASETSIZE*2;
 	    FT_Read(ftHandle, &InputBuffer[0], dwNumInputBuffer, &dwNumBytesRead); 	// read bytes into word locations
 	    dwNumInputBuffer = 0;							// reset the byte counter
-	    //	std::cout<<"Data read!"<<endl;
+	    //	std::cout<<"Data read!"<<std::endl;
 	    
 	    //now make a copy of relevant signal and emit signal with data
 	    
@@ -367,15 +318,11 @@ int FlexRayUSBInterface::exchangeData()
 	}
 	//the unlock happens in the
 	//dataExchangeMutex.unlock();;
-	
-	
-	
-	
 	return 1;
     }
     else
     {
-	//std::cout<<"FTDI USB interface not ready."<<endl;
+	//std::cout<<"FTDI USB interface not ready."<<std::endl;
 	emit FlexRayReady(false);
 	return -1;
     }
@@ -383,7 +330,7 @@ int FlexRayUSBInterface::exchangeData()
 
 void FlexRayUSBInterface::stop()
 {
-    std::cout<<"closing FTDI USB to FlexRay Interface"<<endl;
+    std::cout<<"closing FTDI USB to FlexRay Interface"<<std::endl;
     close();
     emit FlexRayReady(false);
     
@@ -391,15 +338,14 @@ void FlexRayUSBInterface::stop()
 
 void FlexRayUSBInterface::testConnection(comsCommandFrame * CommandFrame1)
 {
-    std::cout<<"TESTING CONNECTION!"<<endl;
+    std::cout<<"TESTING CONNECTION!"<<std::endl;
 }
 
 void FlexRayUSBInterface::close()
 {
-    
-    std::cout<<"Closing FTDI connection."<<endl;
+    std::cout<<"Closing FTDI connection."<<std::endl;
     FT_SetBitMode(ftHandle, 0x0, 0x00); 				// Reset MPSSE
-    std::cout<<"Close returns: "<< FT_Close(ftHandle)<<" ."<<endl;						// Close the port
+    std::cout<<"Close returns: "<< FT_Close(ftHandle)<<" ."<<std::endl;						// Close the port
     mFTDIReady=0;
     emit FlexRayReady(false);
     timerThread->quit();
@@ -413,25 +359,11 @@ void   FlexRayUSBInterface::cyclicProcessor()
     
     //	emit signal with new data;
     
-    //std::cout<<"Cyclic Processor:"<<endl;
+    //std::cout<<"Cyclic Processor:"<<std::endl;
     
     return;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Write a number of words to the SPI bus
-//////////////////////////////////////////////////////////
 FT_STATUS FlexRayUSBInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
 {
     DWORD dwNumBytesSent=0;
@@ -461,21 +393,18 @@ FT_STATUS FlexRayUSBInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer,
 	if(ftStatus != FT_OK)
 	    printf("something wrong with FT_Write call!! \n");
 	//else
-	//	std::cout << dwNumBytesSent <<" bytes sent through SPI" << endl;
+	//	std::cout << dwNumBytesSent <<" bytes sent through SPI" << std::endl;
     }while(ftStatus!=FT_OK);
     
     dwNumBytesToSend = 0;								//Clear output buffer
     return ftStatus;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// this routine is used to enable slave
-//////////////////////////////////////////////////////////
 DWORD FlexRayUSBInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)
 {
     DWORD dwNumBytesToSend;
     dwNumBytesToSend = *NumBytesToSend;
-    
+
     for(int loop=0;loop<2;loop++) //one 0x80 command can keep 0.2us, do 5 times to stay in this situation for 1us
     {
 	OutputBuffer[dwNumBytesToSend++] = '\x80';	// GPIO command for ADBUS
@@ -485,9 +414,6 @@ DWORD FlexRayUSBInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSen
     return dwNumBytesToSend;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// this routine is used to disable slave
-//////////////////////////////////////////////////////////
 DWORD FlexRayUSBInterface::SPI_CSDisable(BYTE* OutputBuffer, DWORD* NumBytesToSend, bool end)
 {
     DWORD dwNumBytesToSend;
@@ -512,9 +438,6 @@ DWORD FlexRayUSBInterface::SPI_CSDisable(BYTE* OutputBuffer, DWORD* NumBytesToSe
     return dwNumBytesToSend;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// find connected devices
-//////////////////////////////////////////////////////////
 bool FlexRayUSBInterface::CheckDeviceConnected(DWORD* NumDevs)
 {
     FT_STATUS ftStatus;
@@ -522,26 +445,23 @@ bool FlexRayUSBInterface::CheckDeviceConnected(DWORD* NumDevs)
     // -----------------------------------------------------------
     // Does an FTDI device exist?
     // -----------------------------------------------------------
-    std::cout << "Checking for FTDI devices..." << endl;
+    std::cout << "Checking for FTDI devices..." << std::endl;
     
     ftStatus = FT_CreateDeviceInfoList(NumDevs);				// Get the number of FTDI devices
     if (ftStatus != FT_OK)							// Did the command execute OK?
     {
-	std::cout << "Error in getting the number of devices" << endl;
+	std::cout << "Error in getting the number of devices" << std::endl;
 	return false;								// Exit with error
     }
     if (*NumDevs < 1)								// Exit if we don't see any
     {
-	std::cout << "There are no FTDI devices installed" << endl;
+	std::cout << "There are no FTDI devices installed" << std::endl;
 	return false;								// Exit with error
     }
-    std::cout << *NumDevs << " FTDI devices found-the count includes individual ports on a single chip" << endl;
+    std::cout << *NumDevs << " FTDI devices found-the count includes individual ports on a single chip" << std::endl;
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Get device info
-//////////////////////////////////////////////////////////
 bool FlexRayUSBInterface::GetDeviceInfo(DWORD* NumDevs)
 {
     FT_STATUS ftStatus;
@@ -556,14 +476,14 @@ bool FlexRayUSBInterface::GetDeviceInfo(DWORD* NumDevs)
     {
 	for (unsigned int i = 0; i < *NumDevs; i++)
 	{
-	    std::cout << " Dev: " << i << endl;
-	    std::cout << " Flags=0x" << devInfo[i].Flags << endl;
-	    std::cout << " Type=0x" << devInfo[i].Type << endl;
-	    std::cout << " ID=0x" << devInfo[i].ID << endl;
-	    std::cout << " LocId=0x" << devInfo[i].LocId << endl;
-	    std::cout << " SerialNumber=" << devInfo[i].SerialNumber << endl;
-	    std::cout << " Description=" << devInfo[i].Description << endl;
-	    std::cout << " ftHandle=0x" << devInfo[i].ftHandle << endl;
+	    std::cout << " Dev: " << i << std::endl;
+	    std::cout << " Flags=0x" << devInfo[i].Flags << std::endl;
+	    std::cout << " Type=0x" << devInfo[i].Type << std::endl;
+	    std::cout << " ID=0x" << devInfo[i].ID << std::endl;
+	    std::cout << " LocId=0x" << devInfo[i].LocId << std::endl;
+	    std::cout << " SerialNumber=" << devInfo[i].SerialNumber << std::endl;
+	    std::cout << " Description=" << devInfo[i].Description << std::endl;
+	    std::cout << " ftHandle=0x" << devInfo[i].ftHandle << std::endl;
 	}
 	return true;
     }
@@ -574,9 +494,6 @@ bool FlexRayUSBInterface::GetDeviceInfo(DWORD* NumDevs)
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Open device and configure the MPSSE controller
-//////////////////////////////////////////////////////////
 bool FlexRayUSBInterface::OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD InTransferSize, DWORD OutTransferSize)
 {
     FT_STATUS ftStatus;
@@ -662,9 +579,6 @@ bool FlexRayUSBInterface::OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD I
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// test the MPSSE controller
-//////////////////////////////////////////////////////////
 bool FlexRayUSBInterface::TestMPSSE(FT_HANDLE* ftHandle)
 {
     FT_STATUS ftStatus;
@@ -688,13 +602,13 @@ bool FlexRayUSBInterface::TestMPSSE(FT_HANDLE* ftHandle)
     ftStatus = FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead); 				// Get the number of bytes in the FT2232H receive buffer
     if (dwNumBytesToRead != 0)
     {
-	std::cout << "Error - MPSSE receive buffer should be empty, Error Code: " << ftStatus << endl;
+	std::cout << "Error - MPSSE receive buffer should be empty, Error Code: " << ftStatus << std::endl;
 	FT_SetBitMode(*ftHandle, 0x0, 0x00); 					// Reset the port to disable MPSSE
 	FT_Close(*ftHandle);							// Close the USB port
 	return false;								// Exit with error
     }
     else
-	std::cout << "Internal loop-back configured and receive buffer is empty" << endl;
+	std::cout << "Internal loop-back configured and receive buffer is empty" << std::endl;
     
     // send bad op-code to check every thing is working correctly
     byOutputBuffer[dwNumBytesToSend++] = 0xAB;						//Add bogus command ‘0xAB’ to the queue
@@ -718,14 +632,14 @@ bool FlexRayUSBInterface::TestMPSSE(FT_HANDLE* ftHandle)
     
     if (bCommandEchod == false)
     {
-	std::cout << "Error in synchronizing the MPSSE" << endl;
+	std::cout << "Error in synchronizing the MPSSE" << std::endl;
 	FT_SetBitMode(*ftHandle, 0x0, 0x00); 					// Reset the port to disable MPSSE
 	FT_Close(*ftHandle);							// Close the USB port
 	return false;								// Exit with error
     }
     else
     {
-	std::cout << "MPSSE synchronised." << endl;
+	std::cout << "MPSSE synchronised." << std::endl;
 	byOutputBuffer[dwNumBytesToSend++] = '\x85';  						// Command to turn off loop back of TDI/TDO connection
 	ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent); 	// Send off the loopback command
 	dwNumBytesToSend = 0; 									// Reset output buffer pointer
@@ -734,9 +648,6 @@ bool FlexRayUSBInterface::TestMPSSE(FT_HANDLE* ftHandle)
     
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Configure the MPSSE controller into an SPI module
-//////////////////////////////////////////////////////////
 bool FlexRayUSBInterface::ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor)
 {
     FT_STATUS ftStatus;
@@ -755,7 +666,7 @@ bool FlexRayUSBInterface::ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor
     ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent); 	// Send out the commands
     if(ftStatus!=FT_OK)
     {
-	std::cout << "Error configuring SPI" << endl;
+	std::cout << "Error configuring SPI" << std::endl;
 	FT_SetBitMode(*ftHandle, 0x0, 0x00); 						// Reset the port to disable MPSSE
 	FT_Close(*ftHandle);										// Close the USB port
 	return false;
@@ -772,14 +683,14 @@ bool FlexRayUSBInterface::ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor
     ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);	// Send out the commands
     if(ftStatus!=FT_OK)
     {
-	std::cout << "Error configuring SPI" << endl;
+	std::cout << "Error configuring SPI" << std::endl;
 	FT_SetBitMode(*ftHandle, 0x0, 0x00); 					// Reset the port to disable MPSSE
 	FT_Close(*ftHandle);							// Close the USB port
 	return false;
     }
     dwNumBytesToSend = 0;									// Clear output buffer
     usleep(100);										// Delay for 100us
-    std::cout << "SPI initialisation successful" << endl;
+    std::cout << "SPI initialisation successful" << std::endl;
     return true;
 }
 
@@ -806,18 +717,3 @@ BOOL FlexRayUSBInterface::SPI_WriteByte(FT_HANDLE ftHandle, WORD bdata)
     dwNumBytesToSend = 0;								//Clear output buffer
     return ftStatus;
 }
-
-}}}
-
-
-
-
-
-
-
-
-
-
-
-
-

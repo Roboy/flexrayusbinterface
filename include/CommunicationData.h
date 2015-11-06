@@ -15,8 +15,7 @@
  *  and limitations under the License.
  *
  */
-#ifndef _EU_MYODE_MYOROBOT_ROBOT_COMMUNICATIONDATA_H_
-#define _EU_MYODE_MYOROBOT_ROBOT_COMMUNICATIONDATA_H_
+#pragma once
 
 #define NUMBER_OF_GANGLIONS 6 //make sure to adjust the value below too when changing here
 #define MAX_ACTIVE_GANGLIONS_MASK 0x3F //6 ganglions can only set the 6 LSBs
@@ -49,14 +48,6 @@ typedef double float64;
 #define NUM_SPI_FRAMES 310
 #define MINIMUM_TIMEPERIOD_CONTROLLER_MICROSECONDS 400
 /* The types in this file need to be in functions called from the ISR functions written in C, so namespace can't be used on the embedded system */
-#ifndef EMBEDDED
-namespace eu
-{
-namespace myode
-{
-namespace myorobot
-{
-#endif
 
 //ERROR from SVN plugin: Get log messages for 'https://svnknoll.informatik.tu-muenchen.de/myorobotics/src/trunk/myode/src/eu.myode.Myorobot/robot/CommunicationData.h' failed.
 //svn: Malformed reply from SOCKS server
@@ -203,13 +194,3 @@ typedef struct ganglionData
 	muscleState_t muscleState[4];
 	sint16 extSensor[12];//there is space for 12 16-bit sensor values from external sensors
 }ganglionData_t;
-
-///////////
-
-#ifndef EMBEDDED
-}
-}
-}
-#endif
-
-#endif /* COMMUNICATIONDATA_H_ */
