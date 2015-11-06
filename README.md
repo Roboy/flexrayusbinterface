@@ -34,3 +34,11 @@ cd path/to/flexrayusbinterface
 cmake .
 make
 ```
+
+### Documentation ###
+
+```
+#!bash
+cd path/to/flexrayusbinterface
+doxygen Doxyfile
+```
