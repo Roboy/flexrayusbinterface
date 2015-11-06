@@ -89,19 +89,55 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="title">comsCommandFrame Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p><code>#include &lt;<a class="el" href="CommunicationData_8h_source.html">CommunicationData.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:af719b18e2d377fe46a912fe57b0f2c1f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af719b18e2d377fe46a912fe57b0f2c1f"></a>
-sint8&#160;</td><td class="memItemRight" valign="bottom"><b>ControlMode</b> [4]</td></tr>
+<tr class="memitem:af719b18e2d377fe46a912fe57b0f2c1f"><td class="memItemLeft" align="right" valign="top">sint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcomsCommandFrame.html#af719b18e2d377fe46a912fe57b0f2c1f">ControlMode</a> [4]</td></tr>
+<tr class="memdesc:af719b18e2d377fe46a912fe57b0f2c1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">a mode word is needed for each motor that can be connected to a ganglion  <a href="#af719b18e2d377fe46a912fe57b0f2c1f">More...</a><br /></td></tr>
 <tr class="separator:af719b18e2d377fe46a912fe57b0f2c1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f03f90b13be19563ebd4f0723e4b6d5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9f03f90b13be19563ebd4f0723e4b6d5"></a>
-sint8&#160;</td><td class="memItemRight" valign="bottom"><b>OperationMode</b> [4]</td></tr>
+<tr class="memitem:a9f03f90b13be19563ebd4f0723e4b6d5"><td class="memItemLeft" align="right" valign="top">sint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcomsCommandFrame.html#a9f03f90b13be19563ebd4f0723e4b6d5">OperationMode</a> [4]</td></tr>
+<tr class="memdesc:a9f03f90b13be19563ebd4f0723e4b6d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">operation mode for each motor of a ganglion  <a href="#a9f03f90b13be19563ebd4f0723e4b6d5">More...</a><br /></td></tr>
 <tr class="separator:a9f03f90b13be19563ebd4f0723e4b6d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a21f645514b2e3bc05c4b82edc73e058f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a21f645514b2e3bc05c4b82edc73e058f"></a>
-float32&#160;</td><td class="memItemRight" valign="bottom"><b>sp</b> [4]</td></tr>
+float32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcomsCommandFrame.html#a21f645514b2e3bc05c4b82edc73e058f">sp</a> [4]</td></tr>
+<tr class="memdesc:a21f645514b2e3bc05c4b82edc73e058f"><td class="mdescLeft">&#160;</td><td class="mdescRight">setpoint for 4 muscles of each Ganglion, merging of static frames 1 and 2 <br /></td></tr>
 <tr class="separator:a21f645514b2e3bc05c4b82edc73e058f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>An array of 6 of these will be transmitted in the mode frame on the flexray bus. The difference in endianess is dealt with on the embedded system. </p>
+</div><h2 class="groupheader">Member Data Documentation</h2>
+<a class="anchor" id="af719b18e2d377fe46a912fe57b0f2c1f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">sint8 comsCommandFrame::ControlMode[4]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>a mode word is needed for each motor that can be connected to a ganglion </p>
+<dl class="section see"><dt>See also</dt><dd>comsControllerMode </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a9f03f90b13be19563ebd4f0723e4b6d5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">sint8 comsCommandFrame::OperationMode[4]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>operation mode for each motor of a ganglion </p>
+<dl class="section see"><dt>See also</dt><dd>comsOperationMode </dd></dl>
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>include/<a class="el" href="CommunicationData_8h_source.html">CommunicationData.h</a></li>
 </ul>

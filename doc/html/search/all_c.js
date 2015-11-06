@@ -2,6 +2,7 @@ var searchData=
 [
   ['sendallcommandframes',['sendAllCommandFrames',['../classFlexRayUSBInterface.html#adae4ac2c3921ca3e2a011aafb2d5242a',1,'FlexRayUSBInterface']]],
   ['sendcommandframe',['sendCommandFrame',['../classFlexRayUSBInterface.html#a213b03e132d1a066119f894bc4dc53a0',1,'FlexRayUSBInterface']]],
+  ['sp',['sp',['../structcomsCommandFrame.html#a21f645514b2e3bc05c4b82edc73e058f',1,'comsCommandFrame']]],
   ['spi_5fcsdisable',['SPI_CSDisable',['../classFlexRayUSBInterface.html#a66bbeadf5ca2395c5090499b8c58c90e',1,'FlexRayUSBInterface']]],
   ['spi_5fcsenable',['SPI_CSEnable',['../classFlexRayUSBInterface.html#ae6274c9ae677a6a8dca5dda66145ecba',1,'FlexRayUSBInterface']]],
   ['spi_5fwritebuffer',['SPI_WriteBuffer',['../classFlexRayUSBInterface.html#abbd350b07f4ab73117324cf2d0e2b10e',1,'FlexRayUSBInterface']]],

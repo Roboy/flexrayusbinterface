@@ -404,7 +404,7 @@ DWORD FlexRayUSBInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSen
 {
     DWORD dwNumBytesToSend;
     dwNumBytesToSend = *NumBytesToSend;
-
+    
     for(int loop=0;loop<2;loop++) //one 0x80 command can keep 0.2us, do 5 times to stay in this situation for 1us
     {
 	OutputBuffer[dwNumBytesToSend++] = '\x80';	// GPIO command for ADBUS

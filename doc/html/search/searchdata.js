@@ -4,7 +4,7 @@ var indexSectionsWithContent =
   1: "cfgmpq",
   2: "f",
   3: "cefgmost~",
-  4: "dfgilmopt",
+  4: "cdfgilmopst",
   5: "dnu"
 };
 

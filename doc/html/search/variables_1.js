@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['forwardgain',['forwardGain',['../structpid__Parameters__t.html#a2e3218a75fa87a834adf184e7642abdf',1,'pid_Parameters_t']]],
-  ['fthandle',['ftHandle',['../classFlexRayUSBInterface.html#a23a56dd0b0485932e59da708189958bf',1,'FlexRayUSBInterface']]],
-  ['ftstatus',['ftStatus',['../classFlexRayUSBInterface.html#a1c778ccf551219aa3fe8a404cbc08049',1,'FlexRayUSBInterface']]]
+  ['dataset',['dataset',['../classFlexRayUSBInterface.html#a9827bf10ab6188ba91f6bb67269c5c2d',1,'FlexRayUSBInterface']]],
+  ['deadband',['deadBand',['../structpid__Parameters__t.html#affb00d0c5a961ae8381778715d279f01',1,'pid_Parameters_t']]],
+  ['dgain',['dgain',['../structpid__Parameters__t.html#ac2f2189add6e258197c9eedd82a38918',1,'pid_Parameters_t']]]
 ];
