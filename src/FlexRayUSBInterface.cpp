@@ -102,12 +102,12 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
         }
     }
     controlparams.tag = 0;			// sint32
-    controlparams.outputPosMax = 4000;	// sint32			// set arbitary max position
-    controlparams.outputNegMax = -4000;		// sint32
+    controlparams.outputPosMax = 200;	// sint32			// set arbitary max position
+    controlparams.outputNegMax = -200;		// sint32
     controlparams.spPosMax = 10000.0;		// float32
     controlparams.spNegMax = -10000.0;		// float32
     controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
-    controlparams.radPerEncoderCount = 0.1;	// float32
+    controlparams.radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
     controlparams.polyPar[0] = 0;		// float32
     controlparams.polyPar[1] = 1;
     controlparams.polyPar[2] = 0;
@@ -115,9 +115,9 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
     controlparams.torqueConstant = 1.0;	// float32
     
     controlparams.params.pidParameters.integral = 0;	// float32
-    controlparams.params.pidParameters.pgain = 1500.0;	// float32
+    controlparams.params.pidParameters.pgain = 1000.0;	// float32
     controlparams.params.pidParameters.igain = 0;		// float32
-    controlparams.params.pidParameters.dgain = 0;		// float32
+    controlparams.params.pidParameters.dgain = 10.0;		// float32
     controlparams.params.pidParameters.forwardGain = 0;	// float32
     controlparams.params.pidParameters.deadBand = 0;	// float32
     controlparams.params.pidParameters.lastError = 0;	// float32
@@ -132,7 +132,7 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
 	{
             commandframe[i].ControlMode[j] = Position;
             commandframe[i].OperationMode[j] = Run;
-            commandframe[i].sp[j] = 3000;
+            commandframe[i].sp[j] = 3;
         }
     }
     sendCommandFrame(commandframe,commandframe,&controlparams);
