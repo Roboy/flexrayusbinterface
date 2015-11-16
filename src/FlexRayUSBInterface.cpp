@@ -92,6 +92,50 @@ FlexRayUSBInterface::FlexRayUSBInterface(int cycleTimeInMilliSeconds):timerThrea
 	emit FlexRayReady(false);
     }
     
+    // initialize test con
+    for(uint i=0;i<3;i++){
+        for(uint j=0;j<4;j++)
+	{
+            commandframe[i].ControlMode[j] = Position;
+            commandframe[i].OperationMode[j] = Initialise;
+            commandframe[i].sp[j] = 3000;
+        }
+    }
+    controlparams.tag = 0;			// sint32
+    controlparams.outputPosMax = 4000;	// sint32			// set arbitary max position
+    controlparams.outputNegMax = -4000;		// sint32
+    controlparams.spPosMax = 10000.0;		// float32
+    controlparams.spNegMax = -10000.0;		// float32
+    controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
+    controlparams.radPerEncoderCount = 0.1;	// float32
+    controlparams.polyPar[0] = 0;		// float32
+    controlparams.polyPar[1] = 1;
+    controlparams.polyPar[2] = 0;
+    controlparams.polyPar[3] = 0;
+    controlparams.torqueConstant = 1.0;	// float32
+    
+    controlparams.params.pidParameters.integral = 0;	// float32
+    controlparams.params.pidParameters.pgain = 1500.0;	// float32
+    controlparams.params.pidParameters.igain = 0;		// float32
+    controlparams.params.pidParameters.dgain = 0;		// float32
+    controlparams.params.pidParameters.forwardGain = 0;	// float32
+    controlparams.params.pidParameters.deadBand = 0;	// float32
+    controlparams.params.pidParameters.lastError = 0;	// float32
+    controlparams.params.pidParameters.IntegralPosMax = 0;	// float32
+    controlparams.params.pidParameters.IntegralNegMax = 0;	// float32
+    
+    exchangeData();
+    sendCommandFrame(commandframe,commandframe,&controlparams);
+    exchangeData();
+    for(uint i=0;i<3;i++){
+        for(uint j=0;j<4;j++)
+	{
+            commandframe[i].ControlMode[j] = Position;
+            commandframe[i].OperationMode[j] = Run;
+            commandframe[i].sp[j] = 3000;
+        }
+    }
+    sendCommandFrame(commandframe,commandframe,&controlparams);
 }
 
 
@@ -299,7 +343,23 @@ int FlexRayUSBInterface::exchangeData()
 	    if(dwNumInputBuffer > DATASETSIZE*2)					// to prevent segfaults
 		dwNumInputBuffer = DATASETSIZE*2;
 	    FT_Read(ftHandle, &InputBuffer[0], dwNumInputBuffer, &dwNumBytesRead); 	// read bytes into word locations
-	    dwNumInputBuffer = 0;							// reset the byte counter
+	    
+            std::cout<<"write"<<std::endl;
+            std::cout<<"--------------------------------------"<<std::endl;
+            for (int j=0;j<DATASETSIZE;j+=2){
+                printf("%d ",dataset[j]);
+            }
+            std::cout<<std::endl;
+            std::cout<<"--------------------------------------"<<std::endl; 
+            std::cout<<"read"<<std::endl;
+            std::cout<<"--------------------------------------"<<std::endl;
+            for (uint i=0;i<dwNumInputBuffer/2;i++){
+                std::cout<<InputBuffer[i]<< " ";
+            }
+            std::cout<<std::endl;
+            std::cout<<"--------------------------------------"<<std::endl; 
+            
+            dwNumInputBuffer = 0;							// reset the byte counter
 	    //	std::cout<<"Data read!"<<std::endl;
 	    
 	    //now make a copy of relevant signal and emit signal with data
@@ -317,7 +377,7 @@ int FlexRayUSBInterface::exchangeData()
 	    
 	}
 	//the unlock happens in the
-	//dataExchangeMutex.unlock();;
+	dataExchangeMutex.unlock();
 	return 1;
     }
     else

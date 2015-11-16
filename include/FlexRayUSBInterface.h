@@ -211,4 +211,6 @@ class FlexRayUSBInterface : public QObject
     QThread *timerThread;
     // QThread  *userInterfaceThread;
     qint64 nanoSec;
+    comsCommandFrame commandframe[3];
+    control_Parameters_t controlparams;
 };

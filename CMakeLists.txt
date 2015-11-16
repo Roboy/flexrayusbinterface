@@ -1,5 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
+SET(DCMAKE_BUILD_TYPE Debug)
+
 PROJECT ( flexrayusbinterface )
 
 # Necessary for Qt signal/event system
