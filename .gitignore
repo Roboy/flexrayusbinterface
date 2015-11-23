@@ -1,4 +1,5 @@
 nbproject/
+logs/
 *moc*
 CMakeFiles/
 Makefile

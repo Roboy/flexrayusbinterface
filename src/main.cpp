@@ -1,13 +1,15 @@
-#include "FlexRayUSBInterface.h"
-#include <QApplication>
+//#include "FlexRayUSBInterface.h"
+#include "FlexRayHardwareInterface.hpp"
+INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char* argv[]){
-    QApplication app(argc, argv);
-    FlexRayUSBInterface interface(100);
-//    sint8 controlMode[] = {0,0,0,0};
-//    sint8 operationMode[] = {0,0,0,0};
-//    float32 sp[] = {0.5,0.5,0.5,0.5};
+    START_EASYLOGGINGPP(argc, argv);
+    // Load configuration from file
+    el::Configurations conf("logging.conf");
+    // Actually reconfigure all loggers instead
+    el::Loggers::reconfigureAllLoggers(conf);
     
-    app.exec();
+    FlexRayHardwareInterface interface;
+
     return 0;
 }
