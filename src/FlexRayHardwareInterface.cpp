@@ -1,7 +1,5 @@
 #include "FlexRayHardwareInterface.hpp"
 
-
-
 int FlexRayHardwareInterface::exchangeData()
 {
     DWORD dwNumInputBuffer=0;

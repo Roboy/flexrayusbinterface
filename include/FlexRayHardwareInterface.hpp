@@ -71,24 +71,24 @@ public:
                     }//TestMPSSE
                     else
                     {
-                        LOG(WARNING) << "device test failed";
+                        LOG(ERROR) << "device test failed";
                     }
                 }//OpenPortAndConfigureMPSSE
                 else
                 {
-                    LOG(WARNING) << "open port failed";
-                    LOG(WARNING) << "--Perhaps the kernel automatically loaded another driver for the   FTDI USB device, from command line try: "
+                    LOG(ERROR) << "open port failed";
+                    LOG(INFO) << "--Perhaps the kernel automatically loaded another driver for the   FTDI USB device, from command line try: "
                             <<std::endl<<"sudo rmmod ftdi_sio"<<std::endl<<"sudo rmmod usbserial"<<std::endl;
                 }
             }//GetDeviceInfo
             else
             {
-                LOG(WARNING) << "device info failed";
+                LOG(ERROR) << "device info failed";
             }
         } //CheckDeviceConnected
         else
         {
-            LOG(WARNING) << "device not connected";
+            LOG(ERROR) << "device not connected";
         }
         return false;
     };
@@ -179,6 +179,14 @@ public:
         }
     };
     
+    //! command frame containing motor control parameters for 3 Ganglia
+    comsCommandFrame commandframe[3];
+    //! control parameters for motor initialization run disable
+    control_Parameters_t controlparams;
+    //! upstream from ganglions to PC
+    ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
+    unsigned short activeGanglionsMask;
+    
 private:
     //! status code
     char m_status;
@@ -192,18 +200,13 @@ private:
     uint m_clockDivisor = 2;	
     //! FTDI ready
     bool m_FTDIReady;
-    //! command frame containing motor control parameters for 3 Ganglia
-    comsCommandFrame commandframe[3];
-    //! control parameters for motor initialization run disable
-    control_Parameters_t controlparams;
+    
     //! this will be send via flexray
     WORD dataset[DATASETSIZE];	
     //! this will contain data coming from flexray
     WORD InputBuffer[DATASETSIZE];	
     
-    //! upstream from ganglions to PC
-    ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
-    unsigned short activeGanglionsMask;
+    
     
     /**
      * routine is used to enable slave
