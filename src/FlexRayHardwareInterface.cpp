@@ -296,11 +296,11 @@ bool FlexRayHardwareInterface::TestMPSSE(FT_HANDLE* ftHandle)
     byOutputBuffer[dwNumBytesToSend++] = 0xAB;						//Add bogus command ‘0xAB’ to the queue
     ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent); 	// Send off the BAD command
     dwNumBytesToSend = 0;									// Reset output buffer pointer
-    
-    do
-    {
+    LOG(DEBUG) << "Waiting for bytes to return, an error or timeout";
+    do{
 	ftStatus = FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead);		// Get the number of bytes in the device input buffer
     } while ((dwNumBytesToRead == 0) && (ftStatus == FT_OK));			// wait for bytes to return, an error or Timeout
+    
     bool bCommandEchod = false;
     ftStatus = FT_Read(*ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead); 	// Read the data from input buffer
     for (DWORD dwCount = 0; dwCount < dwNumBytesRead - 1; dwCount++)			//Check if Bad command and echo command are received
@@ -314,7 +314,7 @@ bool FlexRayHardwareInterface::TestMPSSE(FT_HANDLE* ftHandle)
     
     if (bCommandEchod == false)
     {
-	LOG(ERROR) << "Error in synchronizing the MPSSE";
+	LOG(FATAL) << "Error in synchronizing the MPSSE";
 	FT_SetBitMode(*ftHandle, 0x0, 0x00); 					// Reset the port to disable MPSSE
 	FT_Close(*ftHandle);							// Close the USB port
 	return false;								// Exit with error
