@@ -7,12 +7,15 @@
 
 #pragma once
 
+// comment if no hardware available
+#define HARDWARE
+
 #include <ftd2xx.h>
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
 #include "CommunicationData.h"
-#include "easylogging++.h"
+#include <ros/console.h>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE 
@@ -33,180 +36,72 @@ public:
     /**
      * Constructor 
      */
-    FlexRayHardwareInterface(){        
-        std::cout << "----------------------------" << std::endl;
-        LOG(INFO) << "Trying to connect to FlexRay" ;
-        while(!connect()){
-            LOG(INFO) << "retry? [y/n]";
-            std::string s;
-            std::cin >> s;
-            if(strcmp("y",s.c_str())==0){
-                LOG(INFO) << "retrying...";
-            }else if(strcmp("n",s.c_str())==0){
-                LOG(ERROR) <<  "abort";
-                break;
-            }
-        }
-        initializeMotors();
-    };
+    FlexRayHardwareInterface();
     /**
      * connect to flexray
      * @return status
      */
-    bool connect(){
-        if(CheckDeviceConnected(&m_numberOfConnectedDevices)==true)
-        {
-            if(GetDeviceInfo(&m_numberOfConnectedDevices)==true)
-            {
-                if(OpenPortAndConfigureMPSSE(&m_ftHandle,USBINSIZE,USBOUTSIZE)==true)
-                {
-                    if(TestMPSSE(&m_ftHandle)==true)
-                    {
-                        if(ConfigureSPI(&m_ftHandle, m_clockDivisor)==true)
-                        {
-                            LOG(INFO) << "Configuration OK";
-                            m_FTDIReady = true;
-                            return true;
-                        }
-                    }//TestMPSSE
-                    else
-                    {
-                        LOG(ERROR) << "device test failed";
-                    }
-                }//OpenPortAndConfigureMPSSE
-                else
-                {
-                    LOG(ERROR) << "open port failed";
-                    LOG(INFO) << "--Perhaps the kernel automatically loaded another driver for the   FTDI USB device, from command line try: "
-                            <<std::endl<<"sudo rmmod ftdi_sio"<<std::endl<<"sudo rmmod usbserial"<<std::endl;
-                }
-            }//GetDeviceInfo
-            else
-            {
-                LOG(ERROR) << "device info failed";
-            }
-        } //CheckDeviceConnected
-        else
-        {
-            LOG(ERROR) << "device not connected";
-        }
-        return false;
-    };
+    bool connect();
     /**
-     * use this to initialize the motor control
-     * @return status
+     * use this to initialize the motors
      */
-    void initializeMotors(){
-        controlparams.tag = 0;			// sint32
-        controlparams.outputPosMax = 200;	// sint32			// set arbitary max position
-        controlparams.outputNegMax = -200;		// sint32
-        controlparams.spPosMax = 10000.0;		// float32
-        controlparams.spNegMax = -10000.0;		// float32
-        controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
-        controlparams.radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
-        controlparams.polyPar[0] = 0;		// float32
-        controlparams.polyPar[1] = 1;
-        controlparams.polyPar[2] = 0;
-        controlparams.polyPar[3] = 0;
-        controlparams.torqueConstant = 1.0;	// float32
-
-        controlparams.params.pidParameters.integral = 0;	// float32
-        controlparams.params.pidParameters.pgain = 1000.0;	// float32
-        controlparams.params.pidParameters.igain = 0;		// float32
-        controlparams.params.pidParameters.dgain = 10.0;		// float32
-        controlparams.params.pidParameters.forwardGain = 0;	// float32
-        controlparams.params.pidParameters.deadBand = 0;	// float32
-        controlparams.params.pidParameters.lastError = 0;	// float32
-        controlparams.params.pidParameters.IntegralPosMax = 0;	// float32
-        controlparams.params.pidParameters.IntegralNegMax = 0;	// float32
-
-        // initialize PID controller in motordriver boards
-        for(uint i=0;i<3;i++){
-            for(uint j=0;j<4;j++)
-            {
-                commandframe[i].ControlMode[j] = Position;
-                commandframe[i].OperationMode[j] = Initialise;
-                commandframe[i].sp[j] = 3.0; 
-            }
-        }
-        sendCommandFrame(commandframe,commandframe,&controlparams);
-        for(uint i=0;i<3;i++){
-            for(uint j=0;j<4;j++)
-            {
-                commandframe[i].ControlMode[j] = Position;
-                commandframe[i].OperationMode[j] = Run;
-                commandframe[i].sp[j] = 3;
-            }
-        }
-        sendCommandFrame(commandframe,commandframe,&controlparams);
-    };
-    void sendCommandFrame(comsCommandFrame *CommandFrame1, comsCommandFrame *CommandFrame2, 
-                            control_Parameters_t *ControlParams){
-        memcpy((void *)&dataset[0], CommandFrame1, sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME );
-        memcpy((void *)&dataset[sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME / 2], CommandFrame2, sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME );
-        memcpy((void *)&dataset[72], ControlParams, sizeof(control_Parameters_t));
-        exchangeData();
-    }
+    void initializeMotors();
     
-    void read(){
-        DWORD dwNumInputBuffer=0;
-        DWORD dwNumBytesRead;
-        // WAIT FOR DATA TO ARRIVE
-        while(dwNumInputBuffer!=DATASETSIZE*2){
-            m_ftStatus = FT_GetQueueStatus(m_ftHandle, &dwNumInputBuffer); // get the number of bytes in the device receive buffer
-        }
-//        
-//        // RECEIVE DATA
-//        if(dwNumInputBuffer > DATASETSIZE*2)					// to prevent segfaults
-//            dwNumInputBuffer = DATASETSIZE*2;
+    /**
+     * This function initializes the position controller
+     * @param Pgain
+     * @param IGain
+     * @param Dgain
+     * @param forwardGain
+     * @param deadBand
+     * @param integral
+     * @param IntegralPosMin
+     * @param IntegralPosMax
+     * @param spPosMin
+     * @param spPosMax
+     */
+    void initPositionControl(float Pgain=10000.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    float spPosMin=-100.0, float spPosMax=100.0);
+    
+    void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    float spPosMin=-100.0, float spPosMax=100.0);
+    
+    void initForceControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
         
-        FT_Read(m_ftHandle, &InputBuffer[0], dwNumInputBuffer, &dwNumBytesRead); 	// read bytes into word locations
+    void exchangeData();
+    
+    void updateCommandFrame();
+    
+    uint32_t NumberOfSetBits(uint32_t i);
 
-        // now make a copy of relevant signal
-        memcpy( GanglionData, InputBuffer, sizeof(GanglionData)); //ganglion data
-        
-        activeGanglionsMask=InputBuffer[sizeof(GanglionData)>>1];   //active ganglions, generated from usbFlexRay interface
-    };
-    
-    void write(){
-        m_ftStatus = SPI_WriteBuffer(m_ftHandle, &dataset[0], DATASETSIZE);		// send data
-	if (m_ftStatus != FT_OK){
-	    LOG(ERROR) << "Failed to Send a byte through SPI, Error Code: " << m_ftStatus;
-	    //FT_SetBitMode(ftHandle, 0x0, 0x00); 			// Reset the port to disable MPSSE
-	    //FT_Close(ftHandle);					// Close the USB port
-	}else{
-            LOG(DEBUG) << "Data successfully sent via USB!";
-        }
-    };
-    
-    //! command frame containing motor control parameters for 3 Ganglia
-    comsCommandFrame commandframe[3];
-    //! control parameters for motor initialization run disable
-    control_Parameters_t controlparams;
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
     unsigned short activeGanglionsMask;
-    
+    uint numberOfGanglionsConnected;
+    //! command frames containing motor control parameters for 3 ganglia, respectively
+    comsCommandFrame commandframe0[3];
+    comsCommandFrame commandframe1[3];
+    //! control parameters for motor initialization run disable
+    control_Parameters_t controlparams;
+    //! Result of each D2XX call
+    FT_STATUS ftStatus; 
 private:
-    //! status code
-    char m_status;
     //! Handle of the FTDI device
     FT_HANDLE m_ftHandle;
-    //! Result of each D2XX call
-    FT_STATUS m_ftStatus; 
     //! number of devices connected
     uint m_numberOfConnectedDevices;
     //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
     uint m_clockDivisor = 2;	
     //! FTDI ready
     bool m_FTDIReady;
-    
     //! this will be send via flexray
     WORD dataset[DATASETSIZE];	
     //! this will contain data coming from flexray
     WORD InputBuffer[DATASETSIZE];	
-    
-    
     
     /**
      * routine is used to enable slave
@@ -271,10 +166,6 @@ private:
      * @return FT_STATUS
      */
     FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords);
-    /**
-     * send the current dataset frame on flexray
-     * */
-    int exchangeData();
     
     // necessary for MPSSE command
     const BYTE MSB_RISING_EDGE_CLOCK_BYTE_OUT = '\x10';             
@@ -288,6 +179,61 @@ private:
     const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE = '\x31';   
     const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BYTE = '\x34';   
     const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BIT = '\x36';    
-    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';    
+    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';  
+    
+    void getErrorMessage(FT_STATUS status, char* msg){
+        snprintf(msg,256,"%s", errorMessages[status].c_str());
+    }
+    char errorMessage[256];
+    std::vector<std::string> errorMessages = {
+        "FT_OK - it's all good",
+	"FT_INVALID_HANDLE",
+	"FT_DEVICE_NOT_FOUND",
+	"FT_DEVICE_NOT_OPENED",
+	"FT_IO_ERROR",
+	"FT_INSUFFICIENT_RESOURCES",
+	"FT_INVALID_PARAMETER",
+	"FT_INVALID_BAUD_RATE",
+	"FT_DEVICE_NOT_OPENED_FOR_ERASE",
+	"FT_DEVICE_NOT_OPENED_FOR_WRITE",
+	"FT_FAILED_TO_WRITE_DEVICE",
+	"FT_EEPROM_READ_FAILED",
+	"FT_EEPROM_WRITE_FAILED",
+	"FT_EEPROM_ERASE_FAILED",
+	"FT_EEPROM_NOT_PRESENT",
+	"FT_EEPROM_NOT_PROGRAMMED",
+	"FT_INVALID_ARGS",
+	"FT_NOT_SUPPORTED",
+	"FT_OTHER_ERROR",
+	"FT_DEVICE_LIST_NOT_READY"
+    };
+    
+    struct defaultParams{
+        sint32 tag = 0;			// sint32
+        sint32 outputPosMax = 1000;	// sint32			
+        sint32 outputNegMax = -1000;	// sint32
+        float32 spPosMax = 100.0;	// float32
+        float32 spNegMax = -100.0;	// float32
+        float32 timePeriod = 100;		// float32		//in us	// set time period to avoid error case
+        float32 radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
+        float32 polyPar[4] = {0,1,0,0};		// float32
+        float32 torqueConstant = 1.0;	// float32
+
+        float32 integral = 0;           // float32
+        float32 pgain = 10000.0;	// float32
+        float32 igain = 0.0;            // float32
+        float32 dgain = 0.0;            // float32
+        float32 forwardGain = 0;	// float32
+        float32 deadBand = 0;           // float32
+        float32 lastError = 0;          // float32
+        float32 IntegralPosMax = 0;	// float32
+        float32 IntegralNegMax = 0;	// float32
+    };
+    
+    enum{
+        SoftSpring,
+        MiddleSpring,
+        HardSpring
+    };
 };
 
