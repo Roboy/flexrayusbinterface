@@ -26,6 +26,22 @@ ldconfig -v|grep ftd2xx
 exit
 ```
 
+Ros dependency through logging functionality
+```
+#!bash
+sudo apt-get install ros-indigo-desktop-full
+```
+ncurses
+```
+#!bash
+sudo apt-get install libncurses5-dev 
+```
+I recommend copying the udev rules file to /etc, otherwise the commandline tool can only be run with root privileges
+```
+#!bash
+sudo cp path/to/flexrayusbinterface/udev/30-ftdi.rules /etc/udev/rules.d/
+```
+
 ### Build steps ###
 
 ```
@@ -33,6 +49,15 @@ exit
 cd path/to/flexrayusbinterface
 cmake .
 make
+```
+
+### Run it ###
+
+```
+#!bash
+cd path/to/flexrayusbinterface
+./flexrayusbinterface
+
 ```
 
 ### Documentation ###
