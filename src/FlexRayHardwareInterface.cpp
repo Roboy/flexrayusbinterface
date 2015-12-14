@@ -91,7 +91,7 @@ void FlexRayHardwareInterface::initializeMotors(){
     
     initPositionControl();
     
-    numberOfGanglionsConnected = NumberOfSetBits(activeGanglionsMask);
+    numberOfGanglionsConnected = checkNumberOfConnectedGanglions();
     //        numberOfGanglionsConnected = 1;
     ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
 };
@@ -274,12 +274,18 @@ void FlexRayHardwareInterface::updateCommandFrame(){
     memcpy((void *)&dataset[0], commandframe0, sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME );
     memcpy((void *)&dataset[sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME / 2], commandframe1, sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME );
     memcpy((void *)&dataset[72], &controlparams, sizeof(control_Parameters_t));
-};
+}
 
 uint32_t FlexRayHardwareInterface::NumberOfSetBits(uint32_t i){
     i = i - ((i >> 1) & 0x55555555);
     i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
     return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
+uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions(){
+    exchangeData();
+    numberOfGanglionsConnected = NumberOfSetBits(activeGanglionsMask);
+    return numberOfGanglionsConnected;
 }
 
 DWORD FlexRayHardwareInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)

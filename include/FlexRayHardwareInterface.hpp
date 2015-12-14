@@ -114,13 +114,15 @@ public:
      * @return number of ones set
      */
     uint32_t NumberOfSetBits(uint32_t i);
+    
+    uint32_t checkNumberOfConnectedGanglions();
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
     //! bitmask with active ganglions
     unsigned short activeGanglionsMask;
     //! number of connected ganglions
-    uint numberOfGanglionsConnected;
+    uint32_t numberOfGanglionsConnected;
     //! command frames containing motor control parameters for 3 ganglia, respectively
     comsCommandFrame commandframe0[3], commandframe1[3];
     //! control parameters for motor [initialization, run, disable]
