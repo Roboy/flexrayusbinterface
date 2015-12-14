@@ -64,28 +64,66 @@ public:
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
     
+    /**
+     * This function initializes the velocity controller
+     * @param Pgain
+     * @param IGain
+     * @param Dgain
+     * @param forwardGain
+     * @param deadBand
+     * @param integral
+     * @param IntegralPosMin
+     * @param IntegralPosMax
+     * @param spPosMin
+     * @param spPosMax
+     */
     void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
     
+    /**
+     * This function initializes the force controller
+     * @param Pgain
+     * @param IGain
+     * @param Dgain
+     * @param forwardGain
+     * @param deadBand
+     * @param integral
+     * @param IntegralPosMin
+     * @param IntegralPosMax
+     * @param spPosMin
+     * @param spPosMax
+     */
     void initForceControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
         
+    /**
+     * This function exchanges data between interface and motors
+     */
     void exchangeData();
     
+    /**
+     * This function updates the commandframes
+     */
     void updateCommandFrame();
     
+    /**
+     * This function checks the number of ones set in a bitmask
+     * @param i bitmask
+     * @return number of ones set
+     */
     uint32_t NumberOfSetBits(uint32_t i);
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
+    //! bitmask with active ganglions
     unsigned short activeGanglionsMask;
+    //! number of connected ganglions
     uint numberOfGanglionsConnected;
     //! command frames containing motor control parameters for 3 ganglia, respectively
-    comsCommandFrame commandframe0[3];
-    comsCommandFrame commandframe1[3];
-    //! control parameters for motor initialization run disable
+    comsCommandFrame commandframe0[3], commandframe1[3];
+    //! control parameters for motor [initialization, run, disable]
     control_Parameters_t controlparams;
     //! Result of each D2XX call
     FT_STATUS ftStatus; 
