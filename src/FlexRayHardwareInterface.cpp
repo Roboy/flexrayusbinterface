@@ -198,7 +198,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
         // f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
         // TODO: find correct parameters here
         case SoftSpring: 
-            polyPar[0]=0.621249; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
+            polyPar[0]=0; polyPar[1]=1; polyPar[2]=0; polyPar[3]=0;
             break;
         case MiddleSpring: 
             polyPar[0]=1.604382; polyPar[1]=0.508932; polyPar[2]=-0.000117; polyPar[3]=0;

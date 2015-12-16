@@ -44,7 +44,7 @@ void querySensoryData(){
     mvprintw(7,0,"actuatorPos (rad):   %.5f",motor.actuatorPos);
     mvprintw(8,0,"actuatorVel (rad/s): %.5f",motor.actuatorVel);
     mvprintw(9,0,"actuatorCurrent:     %d",motor.actuatorCurrent);
-    mvprintw(10,0,"tendonDisplacement:  %d",motor.tendonDisplacement);
+    mvprintw(10,0,"tendonDisplacement:  %.5f", (float)motor.tendonDisplacement/32768.0f);
     print(11,0,cols,"-");
     mvprintw(12,0,"P gain:          %.5f",flexray.controlparams.params.pidParameters.pgain);
     mvprintw(13,0,"I gain:          %.5f",flexray.controlparams.params.pidParameters.igain);
