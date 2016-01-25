@@ -16,6 +16,7 @@
 #include <string.h>
 #include "CommunicationData.h"
 #include <ros/console.h>
+#include <map>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE 
@@ -31,6 +32,11 @@
  */
 #define USBINSIZE (((DATASETSIZE*2)/64)+1)*64
 
+enum STATUS{
+	READY=8,
+	NOTREADY=16
+};
+
 class FlexRayHardwareInterface{
 public:
     /**
@@ -39,7 +45,7 @@ public:
     FlexRayHardwareInterface();
     /**
      * connect to flexray
-     * @return status
+     * @return success
      */
     bool connect();
     /**
@@ -114,8 +120,17 @@ public:
      * @return number of ones set
      */
     uint32_t NumberOfSetBits(uint32_t i);
-    
+
+	/**
+	 * Checks the number of connected ganglia
+	 * @return number of connected ganglia
+	 */
     uint32_t checkNumberOfConnectedGanglions();
+
+	/**
+	 * Checks which motors are ready and updates motorState
+	 */
+	void updateMotorState();
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
@@ -128,8 +143,12 @@ public:
     //! control parameters for motor [initialization, run, disable]
     control_Parameters_t controlparams;
     //! Result of each D2XX call
-    FT_STATUS ftStatus; 
+    FT_STATUS ftStatus;
+	//! Map containing a status for each motor
+	std::map<int8_t, int8_t> motorState;
 private:
+	//! current control mode
+	int8_t currentControlMode;
     //! Handle of the FTDI device
     FT_HANDLE m_ftHandle;
     //! number of devices connected

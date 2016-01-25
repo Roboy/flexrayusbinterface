@@ -1,3 +1,4 @@
+#include <CommunicationData.h>
 #include "FlexRayHardwareInterface.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(){        
@@ -90,9 +91,13 @@ void FlexRayHardwareInterface::initializeMotors(){
     }
     
     initPositionControl();
-    
-    numberOfGanglionsConnected = checkNumberOfConnectedGanglions();
-    //        numberOfGanglionsConnected = 1;
+
+#ifdef HARDWARE
+    updateMotorState();
+#else
+	ROS_INFO("NO HARDWARE, setting numberOfGanglionsConnected to 6");
+    numberOfGanglionsConnected = 6;
+#endif
     ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
 };
 
@@ -245,6 +250,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
 
 
 void FlexRayHardwareInterface::exchangeData(){
+#ifdef HARDWARE
     ftStatus = SPI_WriteBuffer(m_ftHandle, &dataset[0], DATASETSIZE);		// send data
     if (ftStatus != FT_OK){
         ROS_ERROR_STREAM("Failed to Send a byte through SPI, Error Code: " << ftStatus);
@@ -267,6 +273,9 @@ void FlexRayHardwareInterface::exchangeData(){
         
         activeGanglionsMask=InputBuffer[sizeof(GanglionData)>>1];   //active ganglions, generated from usbFlexRay interface
     }
+#else
+	ROS_DEBUG("NO HARDWARE, exchange Data called");
+#endif
 }
 
 
@@ -286,6 +295,30 @@ uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions(){
     exchangeData();
     numberOfGanglionsConnected = NumberOfSetBits(activeGanglionsMask);
     return numberOfGanglionsConnected;
+}
+
+void FlexRayHardwareInterface::updateMotorState(){
+	checkNumberOfConnectedGanglions();
+	uint m=0;
+	for(uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for(uint motor=0;motor<4;motor++){
+			int8_t status;
+			if(GanglionData[ganglion].muscleState[motor].actuatorCurrent!=0){
+				status = STATUS::READY;
+			}else{
+				status = STATUS::NOTREADY;
+			}
+			if(m<12) {
+				status |= commandframe0[ganglion].ControlMode[motor];
+			}else{
+				status |= commandframe0[ganglion].ControlMode[motor];
+			}
+			motorState[m]=status;
+			m++;
+		}
+
+	}
+
 }
 
 DWORD FlexRayHardwareInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)
@@ -337,13 +370,13 @@ bool FlexRayHardwareInterface::CheckDeviceConnected(DWORD* NumDevs)
     if (ftStatus != FT_OK)							// Did the command execute OK?
     {
         getErrorMessage(ftStatus,errorMessage);
-	ROS_ERROR_STREAM("Error in getting the number of devices, Error code: " << errorMessage);
-	return false;								// Exit with error
+		ROS_ERROR_STREAM("Error in getting the number of devices, Error code: " << errorMessage);
+		return false;								// Exit with error
     }
     if (*NumDevs < 1)								// Exit if we don't see any
     {
-	ROS_WARN("There are no FTDI devices installed");
-	return false;								// Exit with error
+		ROS_WARN("There are no FTDI devices installed");
+		return false;								// Exit with error
     }
     ROS_INFO_STREAM(*NumDevs << " FTDI devices found-the count includes individual ports on a single chip");
     return true;
@@ -360,23 +393,21 @@ bool FlexRayHardwareInterface::GetDeviceInfo(DWORD* NumDevs)
     ftStatus = FT_GetDeviceInfoList(devInfo,NumDevs);
     if (ftStatus == FT_OK)
     {
-	for (unsigned int i = 0; i < *NumDevs; i++)
-	{
-	    ROS_INFO_STREAM(" Dev: " << i);
-	    ROS_INFO_STREAM(" Flags=0x" << devInfo[i].Flags);
-	    ROS_INFO_STREAM(" Type=0x" << devInfo[i].Type);
-	    ROS_INFO_STREAM(" ID=0x" << devInfo[i].ID);
-	    ROS_INFO_STREAM(" LocId=0x" << devInfo[i].LocId);
-	    ROS_INFO_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
-	    ROS_INFO_STREAM(" Description=" << devInfo[i].Description);
-	    ROS_INFO_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
-	}
-	return true;
-    }
-    else
-    {
-	ROS_WARN( "Could not find info for devices");
-	return false;								// return with error
+		for (unsigned int i = 0; i < *NumDevs; i++)
+		{
+			ROS_INFO_STREAM(" Dev: " << i);
+			ROS_INFO_STREAM(" Flags=0x" << devInfo[i].Flags);
+			ROS_INFO_STREAM(" Type=0x" << devInfo[i].Type);
+			ROS_INFO_STREAM(" ID=0x" << devInfo[i].ID);
+			ROS_INFO_STREAM(" LocId=0x" << devInfo[i].LocId);
+			ROS_INFO_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
+			ROS_INFO_STREAM(" Description=" << devInfo[i].Description);
+			ROS_INFO_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
+		}
+		return true;
+    }else{
+		ROS_WARN( "Could not find info for devices");
+		return false;								// return with error
     }
 }
 
@@ -392,11 +423,11 @@ bool FlexRayHardwareInterface::OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DW
     if (ftStatus != FT_OK)
     {
         getErrorMessage(ftStatus,errorMessage);
-	ROS_ERROR_STREAM("Open Failed with error " << errorMessage);
-	return false;								// Exit with error
+		ROS_ERROR_STREAM("Open Failed with error " << errorMessage);
+		return false;								// Exit with error
     }
     else
-	ROS_INFO("Port opened");
+		ROS_INFO("Port opened");
     
     // ------------------------------------------------------------
     // Configure MPSSE and test for synchronisation
