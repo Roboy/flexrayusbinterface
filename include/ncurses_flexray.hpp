@@ -24,6 +24,7 @@ char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
 char motorstring[] = "which motor(0-3)?";
+char motorinfo[30] ;
 char ganglionstring[] = "which ganglion(0-5)?";
 char runningstring[] = "running ";
 char invalidstring[] = "invalid!";
@@ -86,23 +87,25 @@ public:
 		motor.actuatorCurrent = flexray.GanglionData[ganglion_id].muscleState[motor_id].actuatorCurrent;
 		motor.tendonDisplacement = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement;
 
-		mvprintw(7,0,"actuatorPos (rad):   %.5f",motor.actuatorPos);
-		mvprintw(8,0,"actuatorVel (rad/s): %.5f",motor.actuatorVel);
-		mvprintw(9,0,"actuatorCurrent:     %d",motor.actuatorCurrent);
-		mvprintw(10,0,"tendonDisplacement:  %.5f", (float)motor.tendonDisplacement/32768.0f);
-		print(11,0,cols,"-");
-		mvprintw(12,0,"P gain:          %.5f",flexray.controlparams.params.pidParameters.pgain);
-		mvprintw(13,0,"I gain:          %.5f",flexray.controlparams.params.pidParameters.igain);
-		mvprintw(14,0,"D gain:          %.5f",flexray.controlparams.params.pidParameters.dgain);
-		mvprintw(15,0,"forward gain:    %.5f",flexray.controlparams.params.pidParameters.forwardGain);
-		mvprintw(16,0,"deadband:        %.5f",flexray.controlparams.params.pidParameters.deadBand);
+		sprintf(motorinfo,"ganglion %d, motor %d", ganglion_id, motor_id);
+		printMessage(7,0,motorinfo, CYAN);
+		mvprintw(8,0,"actuatorPos (rad):   %.5f",motor.actuatorPos);
+		mvprintw(9,0,"actuatorVel (rad/s): %.5f",motor.actuatorVel);
+		mvprintw(10,0,"actuatorCurrent:     %d",motor.actuatorCurrent);
+		mvprintw(11,0,"tendonDisplacement:  %.5f", (float)motor.tendonDisplacement/32768.0f);
+		print(12,0,cols,"-");
+		mvprintw(13,0,"P gain:          %.5f",flexray.controlparams.params.pidParameters.pgain);
+		mvprintw(14,0,"I gain:          %.5f",flexray.controlparams.params.pidParameters.igain);
+		mvprintw(15,0,"D gain:          %.5f",flexray.controlparams.params.pidParameters.dgain);
+		mvprintw(16,0,"forward gain:    %.5f",flexray.controlparams.params.pidParameters.forwardGain);
+		mvprintw(17,0,"deadband:        %.5f",flexray.controlparams.params.pidParameters.deadBand);
 		if(ganglion_id<3)
-			mvprintw(17,0,"set point:       %.5f",flexray.commandframe0[ganglion_id].sp[motor_id]);
+			mvprintw(18,0,"set point:       %.5f",flexray.commandframe0[ganglion_id].sp[motor_id]);
 		else
-			mvprintw(17,0,"set point:       %.5f",flexray.commandframe1[ganglion_id].sp[motor_id]);
-		print(18,0,cols,"-");
-		mvprintw(19,0,"polyPar: %.5f  %.5f  %.5f  %.5f",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0]);
-		mvprintw(20,0,"set point limits: %.5f to %.5f",flexray.controlparams.spNegMax,flexray.controlparams.spPosMax);
+			mvprintw(18,0,"set point:       %.5f",flexray.commandframe1[ganglion_id].sp[motor_id]);
+		print(19,0,cols,"-");
+		mvprintw(20,0,"polyPar: %.5f  %.5f  %.5f  %.5f",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0]);
+		mvprintw(21,0,"set point limits: %.5f to %.5f",flexray.controlparams.spNegMax,flexray.controlparams.spPosMax);
 		refresh();
 	}
 	void processing(char* msg1, char* what, char* msg2){
@@ -202,7 +205,9 @@ public:
 		if(ganlionrequest<6)
 			ganglion_id = ganlionrequest;
 		else {
-			printMessage(4, 0, invalidstring, RED);
+			print(4,0,cols," ");
+			print(5,0,cols," ");
+			printMessage(5, 0, invalidstring, RED);
 			return;
 		}
 		print(4,0,cols," ");
@@ -213,7 +218,9 @@ public:
 		if(motorrequest<4)
 			motor_id = motorrequest;
 		else {
-			printMessage(4, 0, invalidstring, RED);
+			print(4,0,cols," ");
+			print(5,0,cols," ");
+			printMessage(5, 0, invalidstring, RED);
 			return;
 		}
 		print(4,0,cols," ");

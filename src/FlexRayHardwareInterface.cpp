@@ -302,18 +302,18 @@ void FlexRayHardwareInterface::updateMotorState(){
 	uint m=0;
 	for(uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
 		for(uint motor=0;motor<4;motor++){
-			int8_t status;
+			int8_t status, controlmode;
 			if(GanglionData[ganglion].muscleState[motor].actuatorCurrent!=0){
-				status = STATUS::READY;
+				status = 1;
 			}else{
-				status = STATUS::NOTREADY;
+				status = 0;
 			}
 			if(m<12) {
-				status |= commandframe0[ganglion].ControlMode[motor];
+                controlmode = commandframe0[ganglion].ControlMode[motor];
 			}else{
-				status |= commandframe0[ganglion].ControlMode[motor];
+                controlmode = commandframe0[ganglion].ControlMode[motor];
 			}
-			motorState[m]=status;
+			motorState[m]=std::make_pair(status,controlmode);
 			m++;
 		}
 

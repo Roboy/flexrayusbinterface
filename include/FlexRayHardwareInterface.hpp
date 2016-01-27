@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-#define HARDWARE
+//#define HARDWARE
 
 #include <ftd2xx.h>
 #include <iostream>
@@ -17,6 +17,7 @@
 #include "CommunicationData.h"
 #include <ros/console.h>
 #include <map>
+#include <utility>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE 
@@ -31,11 +32,6 @@
  * \brief size of USB in buffer in bytes (64 byte aligned)
  */
 #define USBINSIZE (((DATASETSIZE*2)/64)+1)*64
-
-enum STATUS{
-	READY=8,
-	NOTREADY=16
-};
 
 class FlexRayHardwareInterface{
 public:
@@ -145,7 +141,7 @@ public:
     //! Result of each D2XX call
     FT_STATUS ftStatus;
 	//! Map containing a status for each motor
-	std::map<int8_t, int8_t> motorState;
+	std::map<int8_t, std::pair<int8_t,int8_t> > motorState;
 private:
 	//! current control mode
 	int8_t currentControlMode;
