@@ -64,7 +64,10 @@ public:
     void initPositionControl(float Pgain=10000.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
-    
+	/**
+	 * Initialize control for motor in ganglion
+	 */
+	void initPositionControl(uint ganglion, uint motor);
     /**
      * This function initializes the velocity controller
      * @param Pgain
@@ -81,6 +84,10 @@ public:
     void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
+	/**
+	 * Initialize control for motor in ganglion
+	 */
+	void initVelocityControl(uint ganglion, uint motor);
     
     /**
      * This function initializes the force controller
@@ -98,7 +105,10 @@ public:
     void initForceControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
-        
+	/**
+	 * Initialize control for motor in ganglion
+	 */
+	void initForceControl(uint ganglion, uint motor);
     /**
      * This function exchanges data between interface and motors
      */

@@ -142,6 +142,26 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
     exchangeData();
 }
 
+void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor){
+	// initialize PID controller in motordriver boards
+	if(ganglion<3) {
+		commandframe0[ganglion].ControlMode[motor] = Position;
+		commandframe0[ganglion].OperationMode[motor] = Initialise;
+	}else{
+		commandframe1[ganglion].ControlMode[motor] = Position;
+		commandframe1[ganglion].OperationMode[motor] = Initialise;
+	}
+	updateCommandFrame();
+	exchangeData();
+	if(ganglion<3) {
+		commandframe0[ganglion].OperationMode[motor] = Run;
+	}else{
+		commandframe1[ganglion].OperationMode[motor] = Run;
+	}
+	updateCommandFrame();
+	exchangeData();
+}
+
 void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, float Dgain, float forwardGain, 
         float deadBand, float integral, float IntegralPosMin, float IntegralPosMax, 
         float spPosMin, float spPosMax){
@@ -180,6 +200,26 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
     }
     updateCommandFrame();
     exchangeData();
+}
+
+void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor){
+	// initialize PID controller in motordriver boards
+	if(ganglion<3) {
+		commandframe0[ganglion].ControlMode[motor] = Velocity;
+		commandframe0[ganglion].OperationMode[motor] = Initialise;
+	}else{
+		commandframe1[ganglion].ControlMode[motor] = Velocity;
+		commandframe1[ganglion].OperationMode[motor] = Initialise;
+	}
+	updateCommandFrame();
+	exchangeData();
+	if(ganglion<3) {
+		commandframe0[ganglion].OperationMode[motor] = Run;
+	}else{
+		commandframe1[ganglion].OperationMode[motor] = Run;
+	}
+	updateCommandFrame();
+	exchangeData();
 }
 
 void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float Dgain, float forwardGain, 
@@ -246,6 +286,26 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     }
     updateCommandFrame();
     exchangeData();
+}
+
+void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor){
+	// initialize PID controller in motordriver boards
+	if(ganglion<3) {
+		commandframe0[ganglion].ControlMode[motor] = Force;
+		commandframe0[ganglion].OperationMode[motor] = Initialise;
+	}else{
+		commandframe1[ganglion].ControlMode[motor] = Force;
+		commandframe1[ganglion].OperationMode[motor] = Initialise;
+	}
+	updateCommandFrame();
+	exchangeData();
+	if(ganglion<3) {
+		commandframe0[ganglion].OperationMode[motor] = Run;
+	}else{
+		commandframe1[ganglion].OperationMode[motor] = Run;
+	}
+	updateCommandFrame();
+	exchangeData();
 }
 
 
