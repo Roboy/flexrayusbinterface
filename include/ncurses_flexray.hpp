@@ -52,7 +52,7 @@ public:
 		printMessage(3,0,commandstring);
 	}
 	~NCurses_flexray(){
-		clearAll();
+		clearAll(0);
 		printMessage(rows/2,cols/2-strlen(byebyestring)/2,byebyestring);
 		refresh();
 		usleep(1000000);
@@ -73,8 +73,8 @@ public:
 		}
 		refresh();
 	}
-	void clearAll(){
-		for(uint i=0;i<rows;i++){
+	void clearAll(uint row){
+		for(uint i=row;i<rows;i++){
 			print(i,0,cols," ");
 		}
 		refresh();
@@ -87,25 +87,25 @@ public:
 		motor.actuatorCurrent = flexray.GanglionData[ganglion_id].muscleState[motor_id].actuatorCurrent;
 		motor.tendonDisplacement = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement;
 
-		sprintf(motorinfo,"ganglion %d, motor %d", ganglion_id, motor_id);
+		sprintf(motorinfo,"ganglion %d, motor %d   ", ganglion_id, motor_id);
 		printMessage(7,0,motorinfo, CYAN);
-		mvprintw(8,0,"actuatorPos (rad):   %.5f",motor.actuatorPos);
-		mvprintw(9,0,"actuatorVel (rad/s): %.5f",motor.actuatorVel);
-		mvprintw(10,0,"actuatorCurrent:     %d",motor.actuatorCurrent);
-		mvprintw(11,0,"tendonDisplacement:  %.5f", (float)motor.tendonDisplacement/32768.0f);
+		mvprintw(8,0,"actuatorPos (rad):   %.5f    ",motor.actuatorPos);
+		mvprintw(9,0,"actuatorVel (rad/s): %.5f    ",motor.actuatorVel);
+		mvprintw(10,0,"actuatorCurrent:     %d     ",motor.actuatorCurrent);
+		mvprintw(11,0,"tendonDisplacement:  %.5f   ", (float)motor.tendonDisplacement/32768.0f);
 		print(12,0,cols,"-");
-		mvprintw(13,0,"P gain:          %.5f",flexray.controlparams.params.pidParameters.pgain);
-		mvprintw(14,0,"I gain:          %.5f",flexray.controlparams.params.pidParameters.igain);
-		mvprintw(15,0,"D gain:          %.5f",flexray.controlparams.params.pidParameters.dgain);
-		mvprintw(16,0,"forward gain:    %.5f",flexray.controlparams.params.pidParameters.forwardGain);
-		mvprintw(17,0,"deadband:        %.5f",flexray.controlparams.params.pidParameters.deadBand);
+		mvprintw(13,0,"P gain:          %.5f       ",flexray.controlparams.params.pidParameters.pgain);
+		mvprintw(14,0,"I gain:          %.5f       ",flexray.controlparams.params.pidParameters.igain);
+		mvprintw(15,0,"D gain:          %.5f       ",flexray.controlparams.params.pidParameters.dgain);
+		mvprintw(16,0,"forward gain:    %.5f       ",flexray.controlparams.params.pidParameters.forwardGain);
+		mvprintw(17,0,"deadband:        %.5f       ",flexray.controlparams.params.pidParameters.deadBand);
 		if(ganglion_id<3)
-			mvprintw(18,0,"set point:       %.5f",flexray.commandframe0[ganglion_id].sp[motor_id]);
+			mvprintw(18,0,"set point:       %.5f   ",flexray.commandframe0[ganglion_id].sp[motor_id]);
 		else
-			mvprintw(18,0,"set point:       %.5f",flexray.commandframe1[ganglion_id].sp[motor_id]);
+			mvprintw(18,0,"set point:       %.5f   ",flexray.commandframe1[ganglion_id].sp[motor_id]);
 		print(19,0,cols,"-");
-		mvprintw(20,0,"polyPar: %.5f  %.5f  %.5f  %.5f",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0]);
-		mvprintw(21,0,"set point limits: %.5f to %.5f",flexray.controlparams.spNegMax,flexray.controlparams.spPosMax);
+		mvprintw(20,0,"polyPar: %.5f  %.5f  %.5f  %.5f    ",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0]);
+		mvprintw(21,0,"set point limits: %.5f to %.5f     ",flexray.controlparams.spNegMax,flexray.controlparams.spPosMax);
 		refresh();
 	}
 	void processing(char* msg1, char* what, char* msg2){
@@ -146,6 +146,7 @@ public:
 	}
 	void positionControl(){
 		timeout(-1);
+		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		flexray.initPositionControl();
@@ -154,15 +155,17 @@ public:
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[0].sp[0] = pos;
+		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+		noecho();
 	}
 	void velocityControl(){
 		timeout(-1);
+		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		flexray.initVelocityControl();
@@ -171,15 +174,17 @@ public:
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[0].sp[0] = pos;
+		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+		noecho();
 	}
 	void forceControl(){
 		timeout(-1);
+		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		flexray.initForceControl();
@@ -188,15 +193,17 @@ public:
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[0].sp[0] = pos;
+		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+		noecho();
 	}
 	void switchMotor(){
 		timeout(-1);
+		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		printMessage(4,0,ganglionstring, GREEN);
@@ -225,6 +232,7 @@ public:
 		}
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+		noecho();
 	}
 private:
 	FlexRayHardwareInterface flexray;

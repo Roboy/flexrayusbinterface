@@ -2,15 +2,15 @@
 #include "FlexRayHardwareInterface.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(){        
-    std::cout << "----------------------------" << std::endl;
+    motorState.resize(24);
 #ifdef HARDWARE
-    ROS_DEBUG("Trying to connect to FlexRay");
+	ROS_INFO("Trying to connect to FlexRay");
     while(!connect()){
-        ROS_DEBUG("retry? [y/n]");
+        ROS_INFO("retry? [y/n]");
         std::string s;
         std::cin >> s;
         if(strcmp("y",s.c_str())==0){
-            ROS_DEBUG("retrying...");
+            ROS_INFO("retrying...");
         }else if(strcmp("n",s.c_str())==0){
             ROS_FATAL("abort");
             break;
@@ -41,11 +41,11 @@ bool FlexRayHardwareInterface::connect(){
                         do{
                             spiconfigured = ConfigureSPI(&m_ftHandle, m_clockDivisor);
                         }while(spiconfigured == false);
-                        ROS_DEBUG("Configuration OK");
+                        ROS_INFO("Configuration OK");
                         m_FTDIReady = true;
                         return true;
                     }
-                    ROS_DEBUG("Testing MPSSE failed, retrying!");
+					ROS_INFO("Testing MPSSE failed, retrying!");
                     tries ++;
                 }while(mpssetested == false && tries < 3);//TestMPSSE
             }//OpenPortAndConfigureMPSSE
@@ -273,6 +273,7 @@ void FlexRayHardwareInterface::exchangeData(){
         
         activeGanglionsMask=InputBuffer[sizeof(GanglionData)>>1];   //active ganglions, generated from usbFlexRay interface
     }
+	updateMotorState();
 #else
 	ROS_DEBUG("NO HARDWARE, exchange Data called");
 #endif
@@ -298,10 +299,9 @@ uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions(){
 }
 
 void FlexRayHardwareInterface::updateMotorState(){
-	checkNumberOfConnectedGanglions();
 	uint m=0;
 	for(uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
-		for(uint motor=0;motor<4;motor++){
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
 			int8_t status, controlmode;
 			if(GanglionData[ganglion].muscleState[motor].actuatorCurrent!=0){
 				status = 1;
@@ -313,7 +313,7 @@ void FlexRayHardwareInterface::updateMotorState(){
 			}else{
                 controlmode = commandframe0[ganglion].ControlMode[motor];
 			}
-			motorState[m]=std::make_pair(status,controlmode);
+			motorState.at(m) = status;
 			m++;
 		}
 

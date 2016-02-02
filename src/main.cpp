@@ -4,6 +4,7 @@ int main(int argc, char* argv[]){
 
 	NCurses_flexray ncurse;
 	char cmd;
+	noecho();
     do{
 		timeout(10);
         cmd = mvgetch(4,0);

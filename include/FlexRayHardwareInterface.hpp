@@ -16,7 +16,6 @@
 #include <string.h>
 #include "CommunicationData.h"
 #include <ros/console.h>
-#include <map>
 #include <utility>
 
 #define NUM_SPI_FRAMES 310
@@ -141,7 +140,7 @@ public:
     //! Result of each D2XX call
     FT_STATUS ftStatus;
 	//! Map containing a status for each motor
-	std::map<int8_t, std::pair<int8_t,int8_t> > motorState;
+	std::vector<int8_t> motorState;
 private:
 	//! current control mode
 	int8_t currentControlMode;
