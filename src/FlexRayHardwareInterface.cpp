@@ -4,13 +4,13 @@
 FlexRayHardwareInterface::FlexRayHardwareInterface(){        
     std::cout << "----------------------------" << std::endl;
 #ifdef HARDWARE
-    ROS_INFO("Trying to connect to FlexRay");
+    ROS_DEBUG("Trying to connect to FlexRay");
     while(!connect()){
-        ROS_INFO("retry? [y/n]");
+        ROS_DEBUG("retry? [y/n]");
         std::string s;
         std::cin >> s;
         if(strcmp("y",s.c_str())==0){
-            ROS_INFO("retrying...");
+            ROS_DEBUG("retrying...");
         }else if(strcmp("n",s.c_str())==0){
             ROS_FATAL("abort");
             break;
@@ -18,7 +18,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
     }
     initializeMotors();
 #else
-    ROS_INFO( "No Hardware mode enabled");
+    ROS_DEBUG( "No Hardware mode enabled");
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
 #endif
@@ -41,11 +41,11 @@ bool FlexRayHardwareInterface::connect(){
                         do{
                             spiconfigured = ConfigureSPI(&m_ftHandle, m_clockDivisor);
                         }while(spiconfigured == false);
-                        ROS_INFO("Configuration OK");
+                        ROS_DEBUG("Configuration OK");
                         m_FTDIReady = true;
                         return true;
                     }
-                    ROS_INFO("Testing MPSSE failed, retrying!");
+                    ROS_DEBUG("Testing MPSSE failed, retrying!");
                     tries ++;
                 }while(mpssetested == false && tries < 3);//TestMPSSE
             }//OpenPortAndConfigureMPSSE
@@ -95,10 +95,10 @@ void FlexRayHardwareInterface::initializeMotors(){
 #ifdef HARDWARE
     updateMotorState();
 #else
-	ROS_INFO("NO HARDWARE, setting numberOfGanglionsConnected to 6");
+	ROS_DEBUG("NO HARDWARE, setting numberOfGanglionsConnected to 6");
     numberOfGanglionsConnected = 6;
 #endif
-    ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
+    ROS_DEBUG("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
 };
 
 
@@ -364,7 +364,7 @@ bool FlexRayHardwareInterface::CheckDeviceConnected(DWORD* NumDevs)
     // -----------------------------------------------------------
     // Does an FTDI device exist?
     // -----------------------------------------------------------
-    ROS_INFO("Checking for FTDI devices...");
+    ROS_DEBUG("Checking for FTDI devices...");
     
     ftStatus = FT_CreateDeviceInfoList(NumDevs);				// Get the number of FTDI devices
     if (ftStatus != FT_OK)							// Did the command execute OK?
@@ -378,7 +378,7 @@ bool FlexRayHardwareInterface::CheckDeviceConnected(DWORD* NumDevs)
 		ROS_WARN("There are no FTDI devices installed");
 		return false;								// Exit with error
     }
-    ROS_INFO_STREAM(*NumDevs << " FTDI devices found-the count includes individual ports on a single chip");
+    ROS_DEBUG_STREAM(*NumDevs << " FTDI devices found-the count includes individual ports on a single chip");
     return true;
 }
 
@@ -395,14 +395,14 @@ bool FlexRayHardwareInterface::GetDeviceInfo(DWORD* NumDevs)
     {
 		for (unsigned int i = 0; i < *NumDevs; i++)
 		{
-			ROS_INFO_STREAM(" Dev: " << i);
-			ROS_INFO_STREAM(" Flags=0x" << devInfo[i].Flags);
-			ROS_INFO_STREAM(" Type=0x" << devInfo[i].Type);
-			ROS_INFO_STREAM(" ID=0x" << devInfo[i].ID);
-			ROS_INFO_STREAM(" LocId=0x" << devInfo[i].LocId);
-			ROS_INFO_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
-			ROS_INFO_STREAM(" Description=" << devInfo[i].Description);
-			ROS_INFO_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
+			ROS_DEBUG_STREAM(" Dev: " << i);
+			ROS_DEBUG_STREAM(" Flags=0x" << devInfo[i].Flags);
+			ROS_DEBUG_STREAM(" Type=0x" << devInfo[i].Type);
+			ROS_DEBUG_STREAM(" ID=0x" << devInfo[i].ID);
+			ROS_DEBUG_STREAM(" LocId=0x" << devInfo[i].LocId);
+			ROS_DEBUG_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
+			ROS_DEBUG_STREAM(" Description=" << devInfo[i].Description);
+			ROS_DEBUG_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
 		}
 		return true;
     }else{
@@ -427,14 +427,14 @@ bool FlexRayHardwareInterface::OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DW
 		return false;								// Exit with error
     }
     else
-		ROS_INFO("Port opened");
+		ROS_DEBUG("Port opened");
     
     // ------------------------------------------------------------
     // Configure MPSSE and test for synchronisation
     // ------------------------------------------------------------
     
     // Configure port parameters
-    ROS_INFO("Configuring port for MPSSE use");
+    ROS_DEBUG("Configuring port for MPSSE use");
     ftStatus |= FT_ResetDevice(*ftHandle);				//Reset USB device
     ftStatus |= FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead); 	// Purge USB receive buffer first by reading out all old data from FT2232H receive buffer
     // Get the number of bytes in the FT2232H receive buffer
@@ -493,7 +493,7 @@ bool FlexRayHardwareInterface::OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DW
     }
     usleep(1); 													// Wait for all the USB stuff to complete and work
     
-    ROS_INFO("MPSSE ready for commands");
+    ROS_DEBUG("MPSSE ready for commands");
     return true;
 }
 
@@ -614,7 +614,7 @@ bool FlexRayHardwareInterface::ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDi
     }
     dwNumBytesToSend = 0;									// Clear output buffer
     usleep(100);										// Delay for 100us
-    ROS_INFO( "SPI initialisation successful");
+    ROS_DEBUG( "SPI initialisation successful");
     return true;
 }
 
@@ -670,7 +670,7 @@ FT_STATUS FlexRayHardwareInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* bu
 	//	std::cout << dwNumBytesSent <<" bytes sent through SPI" << std::endl;
     }while(ftStatus!=FT_OK);
 #else
-    ROS_INFO("No Hardware mode enabled, not trying to send anything");
+    ROS_DEBUG("No Hardware mode enabled, not trying to send anything");
 #endif
     dwNumBytesToSend = 0;								//Clear output buffer
     return ftStatus;
