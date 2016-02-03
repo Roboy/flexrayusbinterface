@@ -2,7 +2,7 @@
 #include "FlexRayHardwareInterface.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(){        
-    motorState.resize(24);
+    motorState.resize(24,1);
 #ifdef HARDWARE
 	ROS_INFO("Trying to connect to FlexRay");
     while(!connect()){

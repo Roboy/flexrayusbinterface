@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-#define HARDWARE
+//#define HARDWARE
 
 #include <ftd2xx.h>
 #include <iostream>
