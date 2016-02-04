@@ -21,6 +21,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
     ROS_DEBUG( "No Hardware mode enabled");
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
+    controlparams.radPerEncoderCount = 1.0f;
 #endif
 };
 
@@ -336,6 +337,14 @@ void FlexRayHardwareInterface::exchangeData(){
 	updateMotorState();
 #else
 	ROS_DEBUG("NO HARDWARE, exchange Data called");
+    for(uint ganglion=0; ganglion<NUMBER_OF_GANGLIONS; ganglion++){
+        for(uint motor=0; motor<NUMBER_OF_JOINTS_PER_GANGLION; motor++){
+            if(ganglion<3)
+                GanglionData[ganglion].muscleState[motor].actuatorPos = commandframe0[ganglion].sp[motor]/controlparams.radPerEncoderCount;
+            else
+                GanglionData[ganglion].muscleState[motor].actuatorPos = commandframe1[ganglion].sp[motor]/controlparams.radPerEncoderCount;
+        }
+    }
 #endif
 }
 
@@ -354,7 +363,9 @@ uint32_t FlexRayHardwareInterface::NumberOfSetBits(uint32_t i){
 
 uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions(){
     exchangeData();
+#ifdef HARDWARE
     numberOfGanglionsConnected = NumberOfSetBits(activeGanglionsMask);
+#endif
     return numberOfGanglionsConnected;
 }
 
