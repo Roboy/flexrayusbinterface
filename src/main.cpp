@@ -21,6 +21,9 @@ int main(int argc, char* argv[]){
 			case '3':
 				ncurse.switchMotor();
 				break;
+			case '4':
+				ncurse.measureConnection();
+				break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');

@@ -17,6 +17,8 @@
 #include "CommunicationData.h"
 #include <ros/console.h>
 #include <utility>
+#include "timer.hpp"
+#include <fstream>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE 
@@ -137,6 +139,11 @@ public:
 	 */
 	void updateMotorState();
 
+	/**
+	 * Measure connection time
+	 */
+	double meaureConnectionTime();
+
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
     //! bitmask with active ganglions
@@ -152,6 +159,8 @@ public:
 	//! Map containing a status for each motor
 	std::vector<int8_t> motorState;
 private:
+	//! timer
+	Timer timer;
 	//! current control mode
 	int8_t currentControlMode;
     //! Handle of the FTDI device

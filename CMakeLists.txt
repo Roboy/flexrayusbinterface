@@ -19,7 +19,7 @@ FIND_LIBRARY(ROSCONSOLE_LIBRARY rosconsole
     NO_DEFAULT_PATH
 )
 
-INCLUDE_DIRECTORIES( "include/")
+INCLUDE_DIRECTORIES( "include/" "../common_utilities/include")
 
 #FILE(GLOB incs "include/*.h")
 FILE(GLOB incs "include/*.hpp")

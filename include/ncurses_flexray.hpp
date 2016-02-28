@@ -19,7 +19,7 @@ struct MotorData{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling myode muscle via flexray ganglion setup";
-char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [9]exit";
+char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4] measure connection, [9]exit";
 char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
@@ -29,6 +29,8 @@ char ganglionstring[] = "which ganglion(0-5)?";
 char runningstring[] = "running ";
 char invalidstring[] = "invalid!";
 char quitstring[] = " [hit q to quit]";
+char averageconnectionspeedstring[] = "average connection speed: ";
+char logfilestring[] = "see logfile measureConnectionTime.log for details";
 char byebyestring[] = "BYE BYE!";
 
 class NCurses_flexray{
@@ -230,6 +232,22 @@ public:
 			printMessage(5, 0, invalidstring, RED);
 			return;
 		}
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		noecho();
+	}
+	void measureConnection(){
+		timeout(-1);
+		echo();
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		double averageTime = flexray.meaureConnectionTime();
+		printMessage(4, 0, averageconnectionspeedstring);
+		char str[20];
+		sprintf(str, "%f", averageTime);
+		printMessage(4,strlen(averageconnectionspeedstring),str, CYAN);
+		printMessage(5,0,logfilestring, CYAN);
+		usleep(1000000);
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		noecho();

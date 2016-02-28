@@ -392,6 +392,20 @@ void FlexRayHardwareInterface::updateMotorState(){
 
 }
 
+double FlexRayHardwareInterface::meaureConnectionTime(){
+	std::ofstream file;
+	file.open ("measureConnectionTime.log");
+	timer.start();
+	for(uint i=0;i<100;i++){
+		exchangeData();
+	}
+	double elapsedTime = timer.stop();
+	file << "Measured runtime for 100 exchangeData() calls\n";
+	file << "average time: " << elapsedTime/100.0 << std::endl;
+	file.close();
+	return elapsedTime;
+}
+
 DWORD FlexRayHardwareInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)
 {
     DWORD dwNumBytesToSend;
