@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-#define HARDWARE
+//#define HARDWARE
 
 #include <ftd2xx.h>
 #include <iostream>
@@ -51,7 +51,8 @@ public:
     void initializeMotors();
     
     /**
-     * This function initializes the position controller
+     * This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
+     * documentation for details on control parameters.
      * @param Pgain
      * @param IGain
      * @param Dgain
@@ -67,11 +68,14 @@ public:
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
 	/**
-	 * Initialize control for motor in ganglion
+	 * This function initializes position control for one specific motor in a ganglion.
 	 */
-	void initPositionControl(uint ganglion, uint motor);
+	void initPositionControl(uint ganglion, uint motor, float Pgain=10000.0, float IGain=0.0, float Dgain=0.0,
+							 float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
+							 float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
     /**
-     * This function initializes the velocity controller
+     * This function initializes velocity control for all motors on all ganglia. Pleaser refer to myorobotics
+     * documentation for details on control parameters.
      * @param Pgain
      * @param IGain
      * @param Dgain
@@ -87,12 +91,15 @@ public:
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
 	/**
-	 * Initialize control for motor in ganglion
+	 * This function initializes velocity control for one specific motor in a ganglion.
 	 */
-	void initVelocityControl(uint ganglion, uint motor);
+	void initVelocityControl(uint ganglion, uint motor, float Pgain=100.0, float IGain=0.0, float Dgain=0.0,
+							 float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
+							 float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
     
     /**
-     * This function initializes the force controller
+     * This function initializes force control for all motors on all ganglia. Pleaser refer to myorobotics
+     * documentation for details on control parameters.
      * @param Pgain
      * @param IGain
      * @param Dgain
@@ -108,19 +115,21 @@ public:
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
 	/**
-	 * Initialize control for motor in ganglion
+	 * This function initializes force control for one specific motor in a ganglion.
 	 */
-	void initForceControl(uint ganglion, uint motor);
+	void initForceControl(uint ganglion, uint motor, float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
+						  float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
+						  float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
     /**
      * This function exchanges data between interface and motors
      */
     void exchangeData();
-    
+
     /**
      * This function updates the commandframes
      */
     void updateCommandFrame();
-    
+
     /**
      * This function checks the number of ones set in a bitmask
      * @param i bitmask
@@ -140,9 +149,17 @@ public:
 	void updateMotorState();
 
 	/**
-	 * Measure connection time
+	 * Measure connection time via multiple calls to exchangeData()
 	 */
-	double meaureConnectionTime();
+	double measureConnectionTime();
+
+	/**
+	 * Records trajectories of all available motors
+	 * @param samplingTime - sampling time in milliseconds
+	 * @param recordTime - time span to record in seconds
+	 * @param trajectories - reference will be filled with trajectories
+	 */
+	float recordTrajectories(float samplingTime, double recordTime, std::vector<std::vector<float>> *trajectories);
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
@@ -156,26 +173,23 @@ public:
     control_Parameters_t controlparams;
     //! Result of each D2XX call
     FT_STATUS ftStatus;
-	//! Map containing a status for each motor
+	//! vector containing a status for each motor
 	std::vector<int8_t> motorState;
+	//! vector containing the controller type for each motor
+	std::vector<int8_t> motorControllerType;
 private:
 	//! timer
 	Timer timer;
-	//! current control mode
-	int8_t currentControlMode;
     //! Handle of the FTDI device
     FT_HANDLE m_ftHandle;
     //! number of devices connected
     uint m_numberOfConnectedDevices;
     //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
-    uint m_clockDivisor = 2;	
-    //! FTDI ready
-    bool m_FTDIReady;
+    uint m_clockDivisor = 2;
     //! this will be send via flexray
     WORD dataset[DATASETSIZE];	
     //! this will contain data coming from flexray
-    WORD InputBuffer[DATASETSIZE];	
-    
+    WORD InputBuffer[DATASETSIZE];
     /**
      * routine is used to enable slave
      * @param OutputBuffer points to output buffer
@@ -280,29 +294,6 @@ private:
 	"FT_OTHER_ERROR",
 	"FT_DEVICE_LIST_NOT_READY"
     };
-    
-    struct defaultParams{
-        sint32 tag = 0;			// sint32
-        sint32 outputPosMax = 1000;	// sint32			
-        sint32 outputNegMax = -1000;	// sint32
-        float32 spPosMax = 100.0;	// float32
-        float32 spNegMax = -100.0;	// float32
-        float32 timePeriod = 100;		// float32		//in us	// set time period to avoid error case
-        float32 radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
-        float32 polyPar[4] = {0,1,0,0};		// float32
-        float32 torqueConstant = 1.0;	// float32
-
-        float32 integral = 0;           // float32
-        float32 pgain = 10000.0;	// float32
-        float32 igain = 0.0;            // float32
-        float32 dgain = 0.0;            // float32
-        float32 forwardGain = 0;	// float32
-        float32 deadBand = 0;           // float32
-        float32 lastError = 0;          // float32
-        float32 IntegralPosMax = 0;	// float32
-        float32 IntegralNegMax = 0;	// float32
-    };
-    
     enum{
         SoftSpring,
         MiddleSpring,

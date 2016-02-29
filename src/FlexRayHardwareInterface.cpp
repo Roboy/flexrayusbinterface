@@ -2,7 +2,8 @@
 #include "FlexRayHardwareInterface.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(){        
-    motorState.resize(24,1);
+    motorState.resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION,1);
+	motorControllerType.resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION,0);
 #ifdef HARDWARE
 	ROS_INFO("Trying to connect to FlexRay");
     while(!connect()){
@@ -16,13 +17,13 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
             break;
         }
     }
-    initializeMotors();
 #else
     ROS_DEBUG( "No Hardware mode enabled");
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
     controlparams.radPerEncoderCount = 1.0f;
 #endif
+	initializeMotors();
 };
 
 
@@ -43,7 +44,6 @@ bool FlexRayHardwareInterface::connect(){
                             spiconfigured = ConfigureSPI(&m_ftHandle, m_clockDivisor);
                         }while(spiconfigured == false);
                         ROS_INFO("Configuration OK");
-                        m_FTDIReady = true;
                         return true;
                     }
 					ROS_INFO("Testing MPSSE failed, retrying!");
@@ -102,7 +102,6 @@ void FlexRayHardwareInterface::initializeMotors(){
     ROS_DEBUG("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
 };
 
-
 void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, float Dgain, float forwardGain, 
         float deadBand, float integral, float IntegralPosMin, float IntegralPosMax, 
         float spPosMin, float spPosMax){
@@ -119,20 +118,23 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
     controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;	// float32
     
     // initialize PID controller in motordriver boards
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+    for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+        for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
             commandframe0[i].ControlMode[j] = Position;
             commandframe0[i].OperationMode[j] = Initialise;
             commandframe1[i].ControlMode[j] = Position;
             commandframe1[i].OperationMode[j] = Initialise;
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Position;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Position;
         }
     }
     updateCommandFrame();
     exchangeData();
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
+			// TODO: check if controlmode needs to be set here again
             commandframe0[i].ControlMode[j] = Position;
             commandframe0[i].OperationMode[j] = Run;
             commandframe1[i].ControlMode[j] = Position;
@@ -143,7 +145,21 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
     exchangeData();
 }
 
-void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor){
+void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain,
+												   float forwardGain, float deadBand, float integral, float IntegralPosMin,
+												   float IntegralPosMax, float spPosMin, float spPosMax){
+	controlparams.spPosMax = spPosMax;		// float32
+	controlparams.spNegMax = spPosMin;		// float32
+
+	controlparams.params.pidParameters.integral = integral;	// float32
+	controlparams.params.pidParameters.pgain = Pgain;	// float32
+	controlparams.params.pidParameters.igain = IGain; 	// float32
+	controlparams.params.pidParameters.dgain = Dgain;	// float32
+	controlparams.params.pidParameters.forwardGain = forwardGain;	// float32
+	controlparams.params.pidParameters.deadBand = deadBand;	// float32
+	controlparams.params.pidParameters.IntegralPosMax = IntegralPosMax;	// float32
+	controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;	// float32
+
 	// initialize PID controller in motordriver boards
 	if(ganglion<3) {
 		commandframe0[ganglion].ControlMode[motor] = Position;
@@ -152,6 +168,7 @@ void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor){
 		commandframe1[ganglion].ControlMode[motor] = Position;
 		commandframe1[ganglion].OperationMode[motor] = Initialise;
 	}
+	motorControllerType[ganglion*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Position;
 	updateCommandFrame();
 	exchangeData();
 	if(ganglion<3) {
@@ -179,19 +196,21 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
     controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;	// float32
     
     // initialize PID controller in motordriver boards
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
             commandframe0[i].ControlMode[j] = Velocity;
             commandframe0[i].OperationMode[j] = Initialise;
             commandframe1[i].ControlMode[j] = Velocity;
             commandframe1[i].OperationMode[j] = Initialise;
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Velocity;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Velocity;
         }
     }
     updateCommandFrame();
     exchangeData();
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
             commandframe0[i].ControlMode[j] = Velocity;
             commandframe0[i].OperationMode[j] = Run;
@@ -203,7 +222,21 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
     exchangeData();
 }
 
-void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor){
+void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain,
+												   float forwardGain, float deadBand, float integral, float IntegralPosMin,
+												   float IntegralPosMax, float spPosMin, float spPosMax){
+	controlparams.spPosMax = spPosMax;		// float32
+	controlparams.spNegMax = spPosMin;		// float32
+
+	controlparams.params.pidParameters.integral = integral;	// float32
+	controlparams.params.pidParameters.pgain = Pgain;	// float32
+	controlparams.params.pidParameters.igain = IGain; 	// float32
+	controlparams.params.pidParameters.dgain = Dgain;	// float32
+	controlparams.params.pidParameters.forwardGain = forwardGain;	// float32
+	controlparams.params.pidParameters.deadBand = deadBand;	// float32
+	controlparams.params.pidParameters.IntegralPosMax = IntegralPosMax;	// float32
+	controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;	// float32
+
 	// initialize PID controller in motordriver boards
 	if(ganglion<3) {
 		commandframe0[ganglion].ControlMode[motor] = Velocity;
@@ -212,6 +245,7 @@ void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor){
 		commandframe1[ganglion].ControlMode[motor] = Velocity;
 		commandframe1[ganglion].OperationMode[motor] = Initialise;
 	}
+	motorControllerType[ganglion*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Velocity;
 	updateCommandFrame();
 	exchangeData();
 	if(ganglion<3) {
@@ -242,8 +276,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     
     switch (springType){
         // f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
-        // TODO: find correct parameters here
-        case SoftSpring: 
+        case SoftSpring:
             polyPar[0]=0; polyPar[1]=1; polyPar[2]=0; polyPar[3]=0;
             break;
         case MiddleSpring: 
@@ -258,38 +291,71 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     controlparams.polyPar[1] = polyPar[1];
     controlparams.polyPar[2] = polyPar[2];
     controlparams.polyPar[3] = polyPar[3];
-    controlparams.torqueConstant = 1.0;	// float32
+    controlparams.torqueConstant = torqueConstant;	// float32
     
     // initialize PID controller in motordriver boards
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
             commandframe0[i].ControlMode[j] = Force;
             commandframe0[i].OperationMode[j] = Initialise;
-            commandframe0[i].sp[j] = 0; 
             commandframe1[i].ControlMode[j] = Force;
             commandframe1[i].OperationMode[j] = Initialise;
-            commandframe1[i].sp[j] = 0; 
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Force;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Force;
         }
     }
     updateCommandFrame();
     exchangeData();
-    for(uint i=0;i<3;i++){
-        for(uint j=0;j<4;j++)
+	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
+		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
             commandframe0[i].ControlMode[j] = Force;
             commandframe0[i].OperationMode[j] = Run;
-            commandframe0[i].sp[j] = 0;
             commandframe1[i].ControlMode[j] = Force;
             commandframe1[i].OperationMode[j] = Run;
-            commandframe1[i].sp[j] = 0;
         }
     }
     updateCommandFrame();
     exchangeData();
 }
 
-void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor){
+void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain, float forwardGain,
+												float deadBand, float integral, float IntegralPosMin, float IntegralPosMax,
+												float spPosMin, float spPosMax, float torqueConstant , char springType){
+	controlparams.spPosMax = spPosMax;		// float32
+	controlparams.spNegMax = spPosMin;		// float32
+
+	controlparams.params.pidParameters.integral = integral;	// float32
+	controlparams.params.pidParameters.pgain = Pgain;	// float32
+	controlparams.params.pidParameters.igain = IGain; 	// float32
+	controlparams.params.pidParameters.dgain = Dgain;	// float32
+	controlparams.params.pidParameters.forwardGain = forwardGain;	// float32
+	controlparams.params.pidParameters.deadBand = deadBand;	// float32
+	controlparams.params.pidParameters.IntegralPosMax = IntegralPosMax;	// float32
+	controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;	// float32
+
+	float polyPar[4];
+
+	switch (springType){
+		// f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
+		case SoftSpring:
+			polyPar[0]=0; polyPar[1]=1; polyPar[2]=0; polyPar[3]=0;
+			break;
+		case MiddleSpring:
+			polyPar[0]=1.604382; polyPar[1]=0.508932; polyPar[2]=-0.000117; polyPar[3]=0;
+			break;
+		case HardSpring:
+			polyPar[0]=1.186483; polyPar[1]=0.938377; polyPar[2]=-0.000274; polyPar[3]=0.000001;
+			break;
+	}
+
+	controlparams.polyPar[0] = polyPar[0];		// float32
+	controlparams.polyPar[1] = polyPar[1];
+	controlparams.polyPar[2] = polyPar[2];
+	controlparams.polyPar[3] = polyPar[3];
+	controlparams.torqueConstant = torqueConstant;	// float32
+
 	// initialize PID controller in motordriver boards
 	if(ganglion<3) {
 		commandframe0[ganglion].ControlMode[motor] = Force;
@@ -298,6 +364,8 @@ void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor){
 		commandframe1[ganglion].ControlMode[motor] = Force;
 		commandframe1[ganglion].OperationMode[motor] = Initialise;
 	}
+	motorControllerType[ganglion*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Force;
+
 	updateCommandFrame();
 	exchangeData();
 	if(ganglion<3) {
@@ -373,26 +441,20 @@ void FlexRayHardwareInterface::updateMotorState(){
 	uint m=0;
 	for(uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
 		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
-			int8_t status, controlmode;
+			int8_t status;
 			if(GanglionData[ganglion].muscleState[motor].actuatorCurrent!=0){
 				status = 1;
 			}else{
 				status = 0;
 			}
-			if(m<12) {
-                controlmode = commandframe0[ganglion].ControlMode[motor];
-			}else{
-                controlmode = commandframe0[ganglion].ControlMode[motor];
-			}
-			motorState.at(m) = status;
+			motorState[m] = status;
 			m++;
 		}
 
 	}
-
 }
 
-double FlexRayHardwareInterface::meaureConnectionTime(){
+double FlexRayHardwareInterface::measureConnectionTime(){
 	std::ofstream file;
 	file.open ("measureConnectionTime.log");
 	timer.start();
@@ -401,9 +463,84 @@ double FlexRayHardwareInterface::meaureConnectionTime(){
 	}
 	double elapsedTime = timer.stop();
 	file << "Measured runtime for 100 exchangeData() calls\n";
-	file << "average time: " << elapsedTime/100.0 << std::endl;
+	file << "average time: " << elapsedTime/100.0 << " seconds" << std::endl;
 	file.close();
 	return elapsedTime;
+}
+
+float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double recordTime, std::vector<std::vector<float>> *trajectories){
+	// this will be filled with the trajectories
+	trajectories->resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+
+	// make a backup of control modes so after recording they can be restored
+	std::vector<int8_t> motorControllerType_backup = motorControllerType;
+	// force control is probably the most convenient control mode for recording
+	initForceControl();
+
+	// samplingTime milli -> seconds
+	samplingTime /= 1000.0f;
+
+	double elapsedTime = 0.0, dt;
+	long sample = 0;
+
+	// start recording
+	timer.start();
+	while(elapsedTime<recordTime){
+		dt = elapsedTime;
+		exchangeData();
+		uint m = 0;
+		for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+			for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
+				if (motorState[m] == 1) { // only record if motor is available
+					switch (motorControllerType_backup[m]) {
+						case Position:
+							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].actuatorPos*controlparams.radPerEncoderCount);
+							break;
+						case Velocity:
+							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].actuatorVel*controlparams.radPerEncoderCount);
+							break;
+						case Force:
+							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].tendonDisplacement);
+							break;
+					}
+				}
+				m++;
+			}
+		}
+		sample++;
+		elapsedTime = timer.elapsedTime();
+		dt = elapsedTime - dt;
+		// if faster than sampling time sleep for difference
+		if(dt < samplingTime) {
+			usleep((samplingTime - dt) * 1000000.0);
+			elapsedTime = timer.elapsedTime();
+		}
+	}
+	// done recording
+
+	// restore controller types
+	uint m=0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
+			if (motorState[m] == 1) {
+				switch (motorControllerType_backup[m]) {
+					case Position:
+						initPositionControl(ganglion,motor);
+						break;
+					case Velocity:
+						initVelocityControl(ganglion,motor);
+						break;
+					case Force:
+						initForceControl(ganglion,motor);
+						break;
+				}
+			}
+			m++;
+		}
+	}
+
+	// return average sampling time in milliseconds
+	return elapsedTime/(double)sample*1000.0f;
 }
 
 DWORD FlexRayHardwareInterface::SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)

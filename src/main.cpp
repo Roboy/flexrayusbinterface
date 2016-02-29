@@ -24,6 +24,9 @@ int main(int argc, char* argv[]){
 			case '4':
 				ncurse.measureConnection();
 				break;
+			case '5':
+				ncurse.recordTrajectories();
+				break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');
