@@ -19,6 +19,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
     }
 #else
     ROS_DEBUG( "No Hardware mode enabled");
+	virtualRoboy = new VirtualRoboy;
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
     controlparams.radPerEncoderCount = 1.0f;
@@ -26,6 +27,11 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
 	initializeMotors();
 };
 
+FlexRayHardwareInterface::~FlexRayHardwareInterface(){
+#ifndef HARDWARE
+	delete virtualRoboy;
+#endif
+}
 
 bool FlexRayHardwareInterface::connect(){
     if(CheckDeviceConnected(&m_numberOfConnectedDevices)==true)
@@ -276,8 +282,8 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     
     switch (springType){
         // f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
-        case SoftSpring:
-            polyPar[0]=0; polyPar[1]=1; polyPar[2]=0; polyPar[3]=0;
+        case SoftSpring: // D311-spring 0.621249
+            polyPar[0]=0; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
             break;
         case MiddleSpring: 
             polyPar[0]=1.604382; polyPar[1]=0.508932; polyPar[2]=-0.000117; polyPar[3]=0;
@@ -339,8 +345,8 @@ void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float
 
 	switch (springType){
 		// f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
-		case SoftSpring:
-			polyPar[0]=0; polyPar[1]=1; polyPar[2]=0; polyPar[3]=0;
+		case SoftSpring:// D311-spring
+			polyPar[0]=0.621249; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
 			break;
 		case MiddleSpring:
 			polyPar[0]=1.604382; polyPar[1]=0.508932; polyPar[2]=-0.000117; polyPar[3]=0;
@@ -404,7 +410,7 @@ void FlexRayHardwareInterface::exchangeData(){
     }
 	updateMotorState();
 #else
-	ROS_DEBUG("NO HARDWARE, exchange Data called");
+	ROS_DEBUG("NO HARDWARE, using virtual roboy");
     for(uint ganglion=0; ganglion<NUMBER_OF_GANGLIONS; ganglion++){
         for(uint motor=0; motor<NUMBER_OF_JOINTS_PER_GANGLION; motor++){
             if(ganglion<3)
@@ -415,7 +421,6 @@ void FlexRayHardwareInterface::exchangeData(){
     }
 #endif
 }
-
 
 void FlexRayHardwareInterface::updateCommandFrame(){
     memcpy((void *)&dataset[0], commandframe0, sizeof(comsCommandFrame)*GANGLIONS_PER_CONTROL_FRAME );
@@ -458,12 +463,13 @@ double FlexRayHardwareInterface::measureConnectionTime(){
 	std::ofstream file;
 	file.open ("measureConnectionTime.log");
 	timer.start();
-	for(uint i=0;i<100;i++){
+	for(uint i=0;i<1000;i++){
+		updateCommandFrame();
 		exchangeData();
 	}
-	double elapsedTime = timer.stop();
-	file << "Measured runtime for 100 exchangeData() calls\n";
-	file << "average time: " << elapsedTime/100.0 << " seconds" << std::endl;
+	double elapsedTime = timer.stop()/1000.0;
+	file << "Measured runtime for 1000 updateCommandFrame() + exchangeData() calls\n";
+	file << "average time: " << elapsedTime << " seconds" << std::endl;
 	file.close();
 	return elapsedTime;
 }
@@ -474,8 +480,30 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double re
 
 	// make a backup of control modes so after recording they can be restored
 	std::vector<int8_t> motorControllerType_backup = motorControllerType;
-	// force control is probably the most convenient control mode for recording
+	std::vector<float> setPoints_backup(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+	uint i = 0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				setPoints_backup[i] = commandframe0[ganglion].sp[motor];
+			else
+				setPoints_backup[i] = commandframe1[ganglion].sp[motor];
+			i++;
+		}
+	}
+
+	// force control is probably the most convenient mode for recording
 	initForceControl();
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = 5.0f;
+			else
+				commandframe1[ganglion].sp[motor] = 5.0f;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
 
 	// samplingTime milli -> seconds
 	samplingTime /= 1000.0f;

@@ -9,6 +9,7 @@
 
 // comment if no hardware available
 //#define HARDWARE
+#include "VirtualRoboy.hpp"
 
 #include <ftd2xx.h>
 #include <iostream>
@@ -36,10 +37,10 @@
 
 class FlexRayHardwareInterface{
 public:
-    /**
-     * Constructor 
-     */
+    /** Constructor */
     FlexRayHardwareInterface();
+	/** Destructor */
+	~FlexRayHardwareInterface();
     /**
      * connect to flexray
      * @return success
@@ -111,13 +112,13 @@ public:
      * @param spPosMin
      * @param spPosMax
      */
-    void initForceControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
+    void initForceControl(float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
 	/**
 	 * This function initializes force control for one specific motor in a ganglion.
 	 */
-	void initForceControl(uint ganglion, uint motor, float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
+	void initForceControl(uint ganglion, uint motor, float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
 						  float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
 						  float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
     /**
@@ -178,6 +179,8 @@ public:
 	//! vector containing the controller type for each motor
 	std::vector<int8_t> motorControllerType;
 private:
+	//! virtual roboy for simulation
+	VirtualRoboy* virtualRoboy;
 	//! timer
 	Timer timer;
     //! Handle of the FTDI device

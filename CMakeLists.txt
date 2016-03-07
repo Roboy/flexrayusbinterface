@@ -27,6 +27,6 @@ FILE(GLOB srcs "src/*.cpp")
 
 MESSAGE(STATUS ${CMAKE_SOURCE_DIR})
 
-ADD_EXECUTABLE( flexrayusbinterface ${incs} src/FlexRayHardwareInterface.cpp src/main.cpp include/ncurses_flexray.hpp)
+ADD_EXECUTABLE( flexrayusbinterface ${incs} src/FlexRayHardwareInterface.cpp src/main.cpp src/VirtualRoboy.cpp)
 
 TARGET_LINK_LIBRARIES(flexrayusbinterface ${BOOST_LIBS} -lftd2xx -lpthread ${ROSCONSOLE_LIBRARY} -lncurses)

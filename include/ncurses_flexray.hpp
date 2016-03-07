@@ -156,13 +156,16 @@ public:
 		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
-		flexray.initPositionControl();
+		flexray.initPositionControl(ganglion_id,motor_id);
 		printMessage(4,0,setpointstring);
 		mvchgat(4, 0, strlen(setpointstring), A_BOLD, 1, NULL);
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		if(ganglion_id < 3)
+			flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		else
+			flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
@@ -175,13 +178,16 @@ public:
 		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
-		flexray.initVelocityControl();
+		flexray.initVelocityControl(ganglion_id,motor_id);
 		printMessage(4,0,setvelstring);
 		mvchgat(4, 0, strlen(setvelstring), A_BOLD, 1, NULL);
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		if(ganglion_id < 3)
+			flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		else
+			flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
@@ -194,13 +200,16 @@ public:
 		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
-		flexray.initForceControl();
+		flexray.initForceControl(ganglion_id,motor_id);
 		printMessage(4,0,setforcestring);
 		mvchgat(4, 0, strlen(setforcestring), A_BOLD, 1, NULL);
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
-		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		if(ganglion_id < 3)
+			flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		else
+			flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
 		flexray.updateCommandFrame();
 		flexray.exchangeData();
 		processing(runningstring, inputstring, quitstring);
