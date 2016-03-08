@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-//#define HARDWARE
+#define HARDWARE
 #include "VirtualRoboy.hpp"
 
 #include <ftd2xx.h>
@@ -160,7 +160,8 @@ public:
 	 * @param recordTime - time span to record in seconds
 	 * @param trajectories - reference will be filled with trajectories
 	 */
-	float recordTrajectories(float samplingTime, double recordTime, std::vector<std::vector<float>> *trajectories);
+	float recordTrajectories(float samplingTime, float recordTime, std::vector<std::vector<float>> &trajectories,
+							 std::vector<int> &motorId, std::vector<int> &controlMode, std::string name="");
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 

@@ -19,7 +19,7 @@ struct MotorData{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling myode muscle via flexray ganglion setup";
-char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [9]exit";
+char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce ,[9]exit";
 char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
@@ -271,6 +271,10 @@ public:
 		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+		printMessage(4,0,filenamestring);
+		mvgetnstr(4,strlen(filenamestring),inputstring,30);
+		std::string name(inputstring);
+		print(4,0,cols," ");
 		printMessage(4, 0, samplingtimestring, CYAN);
 		mvgetnstr(4,strlen(samplingtimestring),inputstring,30);
 		float samplingTime = atof(inputstring);
@@ -281,42 +285,42 @@ public:
 		print(5,0,cols," ");
 		printMessage(4,0,recordingstring,RED);
 		std::vector<std::vector<float>> trajectories;
-		float averageSamplingTime = flexray.recordTrajectories(samplingTime,recordTime,&trajectories);
+		std::vector<int8_t> idList = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+		std::vector<uint8_t> controlmode(24,1);
+		float averageSamplingTime = flexray.recordTrajectories(samplingTime,recordTime,trajectories,idList,controlmode,name);
 		print(4,0,cols," ");
 		printMessage(4,0,donestring,GREEN);
 		char averagetimestring[50];
 		sprintf(averagetimestring, "average %s%f", samplingtimestring, averageSamplingTime);
 		printMessage(4,strlen(donestring),averagetimestring, CYAN);
-		printMessage(5,0,filenamestring);
-		mvgetnstr(5,strlen(filenamestring),inputstring,30);
-		std::ofstream outfile;
-		outfile.open (inputstring);
-		if(outfile.is_open()){
-			outfile << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
-			outfile << "<root>" << std::endl;
-			uint m = 0;
-			char motorname[10];
-			for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
-				for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
-					sprintf(motorname, "motor%d", m);
-					outfile << "   <" << motorname << std::endl;
-					for(uint i=0; i<trajectories[m].size(); i++)
-						outfile << trajectories[m][i] << " ";
-					outfile << "           >" << std::endl;
-					outfile << "   </"<< motorname << ">" << std::endl;
-					m++;
-				}
-			}
-			outfile << "</root>" << std::endl;
-			outfile.close();
-		}else{
-			print(4,0,cols," ");
-			print(5,0,cols," ");
-			printMessage(4,0,invalidstring,RED);
-		}
 		usleep(500000);
 		print(4,0,cols," ");
 		print(5,0,cols," ");
+	}
+
+	void setAllToForce(){
+		timeout(-1);
+		echo();
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		printMessage(4,0,setforcestring);
+		mvchgat(4, 0, strlen(setforcestring), A_BOLD, 1, NULL);
+		refresh();
+		mvgetnstr(5,0,inputstring,30);
+		pos = atof(inputstring);
+		for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+			for (uint motor=0;motor<4;motor++){
+				if(ganglion_id < 3)
+					flexray.commandframe0[ganglion].sp[motor] = pos;
+				else
+					flexray.commandframe1[ganglion-3].sp[motor] = pos;
+			}
+		}
+		flexray.initForceControl();
+		processing(runningstring, inputstring, quitstring);
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		noecho();
 	}
 private:
 	FlexRayHardwareInterface flexray;

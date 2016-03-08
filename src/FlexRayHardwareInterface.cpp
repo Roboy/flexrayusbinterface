@@ -7,15 +7,8 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
 #ifdef HARDWARE
 	ROS_INFO("Trying to connect to FlexRay");
     while(!connect()){
-        ROS_INFO("retry? [y/n]");
-        std::string s;
-        std::cin >> s;
-        if(strcmp("y",s.c_str())==0){
-            ROS_INFO("retrying...");
-        }else if(strcmp("n",s.c_str())==0){
-            ROS_FATAL("abort");
-            break;
-        }
+		ROS_INFO("retrying...");
+        usleep(1000);
     }
 #else
     ROS_DEBUG( "No Hardware mode enabled");
@@ -140,10 +133,7 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
 		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
-			// TODO: check if controlmode needs to be set here again
-            commandframe0[i].ControlMode[j] = Position;
             commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].ControlMode[j] = Position;
             commandframe1[i].OperationMode[j] = Run;
         }
     }
@@ -218,9 +208,7 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
 		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
-            commandframe0[i].ControlMode[j] = Velocity;
             commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].ControlMode[j] = Velocity;
             commandframe1[i].OperationMode[j] = Run;
         }
     }
@@ -316,9 +304,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
 		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
         {
-            commandframe0[i].ControlMode[j] = Force;
             commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].ControlMode[j] = Force;
             commandframe1[i].OperationMode[j] = Run;
         }
     }
@@ -474,9 +460,12 @@ double FlexRayHardwareInterface::measureConnectionTime(){
 	return elapsedTime;
 }
 
-float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double recordTime, std::vector<std::vector<float>> *trajectories){
+float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float recordTime,
+												   std::vector<std::vector<float>> &trajectories,
+												   std::vector<int> &idList, std::vector<int> &controlmode,
+												   std::string name){
 	// this will be filled with the trajectories
-	trajectories->resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+	trajectories.resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
 
 	// make a backup of control modes so after recording they can be restored
 	std::vector<int8_t> motorControllerType_backup = motorControllerType;
@@ -497,9 +486,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double re
 	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
 		for (uint motor=0;motor<4;motor++){
 			if(ganglion<3)
-				commandframe0[ganglion].sp[motor] = 5.0f;
+				commandframe0[ganglion].sp[motor] = 4.0f;
 			else
-				commandframe1[ganglion].sp[motor] = 5.0f;
+				commandframe1[ganglion].sp[motor] = 4.0f;
 		}
 	}
 	updateCommandFrame();
@@ -516,23 +505,14 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double re
 	while(elapsedTime<recordTime){
 		dt = elapsedTime;
 		exchangeData();
-		uint m = 0;
-		for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
-			for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
-				if (motorState[m] == 1) { // only record if motor is available
-					switch (motorControllerType_backup[m]) {
-						case Position:
-							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].actuatorPos*controlparams.radPerEncoderCount);
-							break;
-						case Velocity:
-							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].actuatorVel*controlparams.radPerEncoderCount);
-							break;
-						case Force:
-							trajectories->at(m).push_back(GanglionData[ganglion].muscleState[motor].tendonDisplacement);
-							break;
-					}
-				}
-				m++;
+		for(uint m=0; m<idList.size(); m++){
+			if (motorState[idList[m]] == 1) { // only record if motor is available
+				if (controlmode[m] == 1)
+						trajectories.at(idList[m]).push_back(GanglionData[idList[m]/NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m]%NUMBER_OF_JOINTS_PER_GANGLION].actuatorPos*controlparams.radPerEncoderCount);
+				else if (controlmode[m] == 2)
+						trajectories.at(idList[m]).push_back(GanglionData[idList[m]/NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m]%NUMBER_OF_JOINTS_PER_GANGLION].actuatorVel*controlparams.radPerEncoderCount);
+				else if (controlmode[m] == 3)
+						trajectories.at(idList[m]).push_back(GanglionData[idList[m]/NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m]%NUMBER_OF_JOINTS_PER_GANGLION].tendonDisplacement);
 			}
 		}
 		sample++;
@@ -545,6 +525,46 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double re
 		}
 	}
 	// done recording
+	std::ofstream outfile;
+	if(name.empty()) {
+		time_t rawtime;
+		struct tm * timeinfo;
+		time ( &rawtime );
+		timeinfo = localtime ( &rawtime );
+		char str[200];
+		sprintf(str, "/home/letrend/workspace/ros_hierarchy/src/flexrayusbinterface/recording_%s.log",asctime(timeinfo));
+		name = str;
+	}
+
+	outfile.open (name);
+	if(outfile.is_open()){
+		outfile << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
+		outfile << "<root>" << std::endl;
+		uint m = 0;
+		char motorname[10];
+		for(uint m=0; m<idList.size(); m++){
+			sprintf(motorname, "motor%d", idList[m]);
+			outfile << "   <" << motorname << std::endl;
+			for(uint i=0; i<trajectories[idList[m]].size(); i++)
+				outfile << trajectories[idList[m]][i] << " ";
+			outfile << "   >" << std::endl;
+			outfile << "   </"<< motorname << ">" << std::endl;
+		}
+		outfile << "</root>" << std::endl;
+		outfile.close();
+	}
+
+	// set force to zero
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = 0.0f;
+			else
+				commandframe1[ganglion].sp[motor] = 0.0f;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
 
 	// restore controller types
 	uint m=0;
@@ -566,6 +586,19 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, double re
 			m++;
 		}
 	}
+	// restore setpoints
+	i=0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = setPoints_backup[i];
+			else
+				commandframe1[ganglion].sp[motor] = setPoints_backup[i];
+			i++;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
 
 	// return average sampling time in milliseconds
 	return elapsedTime/(double)sample*1000.0f;

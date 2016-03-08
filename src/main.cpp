@@ -27,6 +27,9 @@ int main(int argc, char* argv[]){
 			case '5':
 				ncurse.recordTrajectories();
 				break;
+			case '6':
+				ncurse.setAllToForce();
+				break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');
