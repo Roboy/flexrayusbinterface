@@ -1,40 +1,27 @@
 #pragma once
 #include "CommunicationData.h"
+#include "timer.hpp"
 #include <stdlib.h>
+#include <unistd.h>
 #include <string>
 #include <vector>
+#include <thread>
 
 class VirtualPIDController
 {
-	uint tag;
-	bool isEnabled = false;
-    float32 integral;/*!<Integral of the error*/
-    float32 pgain;/*!<Gain of the proportional component*/
-    float32 igain;/*!<Gain of the integral component*/
-    float32 dgain;/*!<Gain of the differential component*/
-    float32 forwardGain; /*!<Gain of  the feed-forward term*/
-    float32 deadBand;/*!<Optional deadband threshold for the control response*/
-    float32 lastError;/*!<Error in previous time-step, used to calculate the differential component*/
-    float32 IntegralPosMax;/*<!Positive saturation limit for the integral term*/
-    float32 IntegralNegMax;/*<!Negative saturation limit for the integral term*/
-    float32 outputPosMax;
-    float32 outputNegMax;
-    float32 spPosMax;
-    float32 spNegMax;
-	float32 radPerEncoderCount;
-	float32 polyPar[4];
-	float32 torqueConstant;
-	float32 setPoint;
-    uint32 timePeriod;
-
-    public:
-
+public:
     /** Constructor to instantiate a PID controller with the variables stored in a
-     * 	control_Parameters union.*/
+     * 	control_Parameters union. Also starts control thread*/
     VirtualPIDController(const control_Parameters_t&);
 
     /** Constructor to instantiate an uninitialised PID controller.*/
     VirtualPIDController(){};
+
+	/** Destructor*/
+	~VirtualPIDController();
+
+	/** control loop started in extra thread */
+	void main_loop();
 
     /** Set the integral term to a given value.
     *	@param new_integ The value to which the integral term will be set.
@@ -104,6 +91,32 @@ class VirtualPIDController
     float outputCalc(float pv);
 
     virtual void setisEnabled(bool enable);
+
+private:
+	uint tag;
+	bool isEnabled = false;
+	float32 integral;/*!<Integral of the error*/
+	float32 pgain;/*!<Gain of the proportional component*/
+	float32 igain;/*!<Gain of the integral component*/
+	float32 dgain;/*!<Gain of the differential component*/
+	float32 forwardGain; /*!<Gain of  the feed-forward term*/
+	float32 deadBand;/*!<Optional deadband threshold for the control response*/
+	float32 lastError;/*!<Error in previous time-step, used to calculate the differential component*/
+	float32 IntegralPosMax;/*<!Positive saturation limit for the integral term*/
+	float32 IntegralNegMax;/*<!Negative saturation limit for the integral term*/
+	float32 outputPosMax;
+	float32 outputNegMax;
+	float32 spPosMax;
+	float32 spNegMax;
+	float32 radPerEncoderCount;
+	float32 polyPar[4];
+	float32 torqueConstant;
+	float32 setPoint;
+	float32 pv;
+	float32 control;
+	uint32 timePeriod;
+	std::thread *control_thread = nullptr;
+	Timer timer;
 };
 
 class VirtualGanglion{

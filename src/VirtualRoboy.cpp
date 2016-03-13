@@ -2,42 +2,73 @@
 
 VirtualPIDController::VirtualPIDController(const control_Parameters_t& parameters)
 {
-      tag = parameters.tag;
-      pgain = parameters.params.pidParameters.pgain;
-      igain = parameters.params.pidParameters.igain;
-      dgain = parameters.params.pidParameters.dgain;
-      deadBand = parameters.params.pidParameters.deadBand;
-      timePeriod = parameters.timePeriod;
-      lastError = 0;
-      integral = 0;
-      IntegralPosMax = parameters.params.pidParameters.IntegralPosMax;
-      IntegralNegMax = parameters.params.pidParameters.IntegralNegMax;
-      outputPosMax = parameters.outputPosMax;
-      outputNegMax = parameters.outputNegMax;
-      spPosMax = parameters.spPosMax;
-      spNegMax = parameters.spNegMax;
-      isEnabled = 0;//controller is initialised disabled
+    tag = parameters.tag;
+    pgain = parameters.params.pidParameters.pgain;
+    igain = parameters.params.pidParameters.igain;
+    dgain = parameters.params.pidParameters.dgain;
+    deadBand = parameters.params.pidParameters.deadBand;
+    timePeriod = parameters.timePeriod;
+    lastError = 0;
+    integral = 0;
+    IntegralPosMax = parameters.params.pidParameters.IntegralPosMax;
+    IntegralNegMax = parameters.params.pidParameters.IntegralNegMax;
+    outputPosMax = parameters.outputPosMax;
+    outputNegMax = parameters.outputNegMax;
+    spPosMax = parameters.spPosMax;
+    spNegMax = parameters.spNegMax;
+    isEnabled = 1;
+    control_thread = new std::thread(&VirtualPIDController::main_loop, this);
+}
+
+VirtualPIDController::~VirtualPIDController(){
+	if(control_thread!=nullptr) {
+		isEnabled = false;
+		control_thread->join();
+	}
+}
+
+void VirtualPIDController::main_loop(){
+	// 10 milliseconds
+	double samplingTime=0.01;
+
+	timer.start();
+	double dt,elapsedTime=0.0;
+
+	while(isEnabled){
+		dt = elapsedTime;
+
+		// calculate control
+		control = outputCalc(pv);
+
+		elapsedTime = timer.elapsedTime();
+		dt = elapsedTime - dt;
+		// if faster than sampling time sleep for difference
+		if(dt < samplingTime) {
+			usleep((samplingTime - dt) * 1000000.0);
+			elapsedTime = timer.elapsedTime();
+		}
+	}
 }
 
 int VirtualPIDController::set_pgain(float gain)
 {
-  pgain = gain;
+	pgain = gain;
 
-  return 0;
+	return 0;
 }
 
 int VirtualPIDController::set_igain(float gain)
 {
-  igain = gain;
+	igain = gain;
 
-  return 0;
+	return 0;
 }
 
 int VirtualPIDController::set_dgain(float gain)
 {
-  dgain = gain;
+	dgain = gain;
 
-  return 0;
+	return 0;
 }
 
 void VirtualPIDController::pid_setinteg(float new_integ)

@@ -285,8 +285,8 @@ public:
 		print(5,0,cols," ");
 		printMessage(4,0,recordingstring,RED);
 		std::vector<std::vector<float>> trajectories;
-		std::vector<int8_t> idList = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
-		std::vector<uint8_t> controlmode(24,1);
+		std::vector<int> idList = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+		std::vector<int> controlmode(24,1);
 		float averageSamplingTime = flexray.recordTrajectories(samplingTime,recordTime,trajectories,idList,controlmode,name);
 		print(4,0,cols," ");
 		printMessage(4,0,donestring,GREEN);
