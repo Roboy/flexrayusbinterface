@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
+
+using namespace std;
 
 class VirtualPIDController
 {
@@ -115,7 +118,7 @@ private:
 	float32 pv;
 	float32 control;
 	uint32 timePeriod;
-	std::thread *control_thread = nullptr;
+	thread *control_thread = nullptr;
 	Timer timer;
 };
 
@@ -125,7 +128,7 @@ public:
 		controller.resize(NUMBER_OF_JOINTS_PER_GANGLION);
 	}
 private:
-	std::vector<VirtualPIDController> controller;
+	vector<VirtualPIDController> controller;
 };
 
 class VirtualRoboy{
@@ -133,7 +136,11 @@ public:
 	VirtualRoboy(){
 		ganglia.resize(NUMBER_OF_GANGLIONS);
 	}
-
+	//! upstream from ganglions to PC
+	ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
+	//! command frames containing motor control parameters for 3 ganglia, respectively
+	comsCommandFrame commandframe0[3], commandframe1[3];
 private:
-	std::vector<VirtualGanglion> ganglia;
+	mutex mux;
+	vector<VirtualGanglion> ganglia;
 };

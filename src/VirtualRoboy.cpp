@@ -22,7 +22,6 @@ VirtualPIDController::VirtualPIDController(const control_Parameters_t& parameter
 
 VirtualPIDController::~VirtualPIDController(){
 	if(control_thread!=nullptr) {
-		isEnabled = false;
 		control_thread->join();
 	}
 }
@@ -37,7 +36,6 @@ void VirtualPIDController::main_loop(){
 	while(isEnabled){
 		dt = elapsedTime;
 
-		// calculate control
 		control = outputCalc(pv);
 
 		elapsedTime = timer.elapsedTime();
