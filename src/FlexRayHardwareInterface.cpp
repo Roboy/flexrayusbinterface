@@ -386,6 +386,10 @@ void FlexRayHardwareInterface::exchangeData(){
         while(dwNumInputBuffer!=DATASETSIZE*2){
             ftStatus = FT_GetQueueStatus(m_ftHandle, &dwNumInputBuffer); // get the number of bytes in the device receive buffer
         }
+        if (ftStatus != FT_OK){
+            getErrorMessage(ftStatus,errorMessage);
+			ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
+        }
         ROS_DEBUG("reading data");
         FT_Read(m_ftHandle, &InputBuffer[0], dwNumInputBuffer, &dwNumBytesRead); 	// read bytes into word locations
         
@@ -552,6 +556,129 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
 		}
 		outfile << "</root>" << std::endl;
 		outfile.close();
+	}
+
+	// set force to zero
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = 0.0f;
+			else
+				commandframe1[ganglion].sp[motor] = 0.0f;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
+
+	// restore controller types
+	uint m=0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
+			if (motorState[m] == 1) {
+				switch (motorControllerType_backup[m]) {
+					case Position:
+						initPositionControl(ganglion,motor);
+						break;
+					case Velocity:
+						initVelocityControl(ganglion,motor);
+						break;
+					case Force:
+						initForceControl(ganglion,motor);
+						break;
+				}
+			}
+			m++;
+		}
+	}
+	// restore setpoints
+	i=0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = setPoints_backup[i];
+			else
+				commandframe1[ganglion].sp[motor] = setPoints_backup[i];
+			i++;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
+
+	// return average sampling time in milliseconds
+	return elapsedTime/(double)sample*1000.0f;
+}
+
+float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
+						 std::vector<int> &idList, std::vector<int> &controlmode, int8_t *recording){
+	// this will be filled with the trajectories
+	trajectories.resize(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+
+	// make a backup of control modes so after recording they can be restored
+	std::vector<int8_t> motorControllerType_backup = motorControllerType;
+	std::vector<float> setPoints_backup(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+	uint i = 0;
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				setPoints_backup[i] = commandframe0[ganglion].sp[motor];
+			else
+				setPoints_backup[i] = commandframe1[ganglion].sp[motor];
+			i++;
+		}
+	}
+
+	// force control is probably the most convenient mode for recording
+	initForceControl();
+	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
+		for (uint motor=0;motor<4;motor++){
+			if(ganglion<3)
+				commandframe0[ganglion].sp[motor] = 4.0f;
+			else
+				commandframe1[ganglion].sp[motor] = 4.0f;
+		}
+	}
+	updateCommandFrame();
+	exchangeData();
+
+	// samplingTime milli -> seconds
+	samplingTime /= 1000.0f;
+
+	double elapsedTime = 0.0, dt;
+	long sample = 0;
+
+	// start recording
+	timer.start();
+	while(*recording!=STOP_TRAJECTORY){
+		dt = elapsedTime;
+		if(*recording==PLAY_TRAJECTORY) {
+			exchangeData();
+			for (uint m = 0; m < idList.size(); m++) {
+				if (motorState[idList[m]] == 1) { // only record if motor is available
+					if (controlmode[m] == 1)
+						trajectories.at(idList[m]).push_back(
+								GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] %
+																									NUMBER_OF_JOINTS_PER_GANGLION].actuatorPos *
+								controlparams.radPerEncoderCount);
+					else if (controlmode[m] == 2)
+						trajectories.at(idList[m]).push_back(
+								GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] %
+																									NUMBER_OF_JOINTS_PER_GANGLION].actuatorVel *
+								controlparams.radPerEncoderCount);
+					else if (controlmode[m] == 3)
+						trajectories.at(idList[m]).push_back(
+								GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] %
+																									NUMBER_OF_JOINTS_PER_GANGLION].tendonDisplacement);
+				}
+			}
+			sample++;
+		}
+		elapsedTime = timer.elapsedTime();
+		dt = elapsedTime - dt;
+		// if faster than sampling time sleep for difference
+		if (dt < samplingTime) {
+			usleep((samplingTime - dt) * 1000000.0);
+			elapsedTime = timer.elapsedTime();
+		}
 	}
 
 	// set force to zero

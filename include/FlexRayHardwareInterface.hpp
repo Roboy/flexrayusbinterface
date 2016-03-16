@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-//#define HARDWARE
+#define HARDWARE
 #include "VirtualRoboy.hpp"
 
 #include <ftd2xx.h>
@@ -159,9 +159,21 @@ public:
 	 * @param samplingTime - sampling time in milliseconds
 	 * @param recordTime - time span to record in seconds
 	 * @param trajectories - reference will be filled with trajectories
+	 * @param idList - record from these motors
+	 * @param controlMode - what values should be recorded
 	 */
 	float recordTrajectories(float samplingTime, float recordTime, std::vector<std::vector<float>> &trajectories,
-							 std::vector<int> &motorId, std::vector<int> &controlMode, std::string name="");
+							 std::vector<int> &idList, std::vector<int> &controlMode, std::string name="");
+	/**
+	 * Records trajectories of all available motors
+	 * @param samplingTime - sampling time in milliseconds
+	 * @param trajectories - reference will be filled with trajectories
+	 * @param idList - record from these motors
+	 * @param controlMode - what values should be recorded
+	 * @param stop_recording - pointer to steering bool
+	 */
+	float recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
+							 std::vector<int> &idList, std::vector<int> &controlMode, int8_t *recording);
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
@@ -303,5 +315,6 @@ private:
         MiddleSpring,
         HardSpring
     };
+	enum SteeringCommand {STOP_TRAJECTORY=0,PLAY_TRAJECTORY,PAUSE_TRAJECTORY,REWIND_TRAJECTORY};
 };
 
