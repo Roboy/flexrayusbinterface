@@ -25,12 +25,6 @@ cp ftd2xx.h WinTypes.h /usr/local/include/
 ldconfig -v|grep ftd2xx
 exit
 ```
-
-Ros dependency through logging functionality
-```
-#!bash
-sudo apt-get install ros-indigo-desktop-full
-```
 ncurses
 ```
 #!bash
