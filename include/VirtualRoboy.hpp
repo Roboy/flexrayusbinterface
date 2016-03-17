@@ -18,10 +18,10 @@ public:
     /** Constructor Dtart of control thread
      * @param controlparams - pointer to control parameters
      */
-    VirtualPIDController(sint8 *cm, sint8 *om, float32 *setpoint,
-						 control_Parameters_t *controlparams, muscleState_t *muscleState):
+    VirtualPIDController(sint8 *cm, sint8 *om, float32 *setpoint, control_Parameters_t *controlparams,
+						 muscleState_t *muscleState, float *controllerOutput):
 			m_controlparams(controlparams), m_muscleState(muscleState), controlMode(cm),
-			OperationMode(om), sp(setpoint){
+			OperationMode(om), sp(setpoint), control(controllerOutput){
 
 		// point to respective parameters
 		tag = &controlparams->tag;
@@ -57,7 +57,7 @@ public:
 		while(isEnabled){
 			dt = elapsedTime;
 
-			control = outputCalc();
+			*control = outputCalc();
 
 			elapsedTime = timer.elapsedTimeMicroSeconds();
 			dt = elapsedTime - dt;
@@ -134,7 +134,7 @@ private:
 	sint8 *controlMode;
 	sint8 *OperationMode;
 	float32 *sp;
-	float32 control;
+	float32 *control;
 	float32 integral;
 	float32 lastError;
 	control_Parameters_t *m_controlparams;
@@ -146,13 +146,13 @@ private:
 
 class VirtualGanglion{
 public:
-	VirtualGanglion(comsCommandFrame *commandFrame, control_Parameters_t *controlparams, ganglionData_t *GanglionData):
+	VirtualGanglion(comsCommandFrame *commandFrame, control_Parameters_t *controlparams, ganglionData_t *GanglionData, float* controllerOutput):
 			m_commandFrame(commandFrame), m_controlparams(controlparams), m_GanglionData(GanglionData){
 		m_controller.resize(NUMBER_OF_JOINTS_PER_GANGLION);
 		// each controller
 		for(uint i=0; i<NUMBER_OF_JOINTS_PER_GANGLION; i++){
 			m_controller[i] = new VirtualPIDController(&commandFrame->ControlMode[i],&commandFrame->OperationMode[i],&commandFrame->sp[i],
-													   controlparams, &GanglionData->muscleState[i]);
+													   controlparams, &GanglionData->muscleState[i], &controllerOutput[i]);
 		}
 	}
 	~VirtualGanglion(){
@@ -175,10 +175,10 @@ public:
 		// each ganglion gets a reference to its commandframe and its ganglion data frame
 		for(uint i=0; i<NUMBER_OF_GANGLIONS; i++){
 			if(i<3) {
-				m_ganglia[i] = new VirtualGanglion(commandframe0, controlparams, GanglionData);
+				m_ganglia[i] = new VirtualGanglion(commandframe0, controlparams, GanglionData, &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
 				++commandframe0;
 			}else {
-				m_ganglia[i] = new VirtualGanglion(commandframe1, controlparams, GanglionData);
+				m_ganglia[i] = new VirtualGanglion(commandframe1, controlparams, GanglionData, &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
 				++commandframe1;
 			}
 			++GanglionData;
@@ -189,6 +189,7 @@ public:
 			delete m_ganglia[i];
 		}
 	}
+	float controllerOutput[NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION];
 private:
 	mutex mux; // TODO: check thread safety, possibly use mutex while changing values in GanglionData/commandframes/controlparams
 	vector<VirtualGanglion*> m_ganglia;
