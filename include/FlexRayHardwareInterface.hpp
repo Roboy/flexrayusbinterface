@@ -8,7 +8,7 @@
 #pragma once
 
 // comment if no hardware available
-#define HARDWARE
+//#define HARDWARE
 #include "VirtualRoboy.hpp"
 
 #include <ftd2xx.h>
@@ -183,7 +183,7 @@ public:
     uint32_t numberOfGanglionsConnected;
     //! command frames containing motor control parameters for 3 ganglia, respectively
     comsCommandFrame commandframe0[3], commandframe1[3];
-    //! control parameters for motor [initialization, run, disable]
+    //! control parameters for motor
     control_Parameters_t controlparams;
     //! Result of each D2XX call
     FT_STATUS ftStatus;

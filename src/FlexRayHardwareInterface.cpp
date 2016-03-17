@@ -12,10 +12,9 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
     }
 #else
     ROS_DEBUG( "No Hardware mode enabled");
-	virtualRoboy = new VirtualRoboy;
+	virtualRoboy = new VirtualRoboy(&GanglionData[0],&commandframe0[0],&commandframe1[0],&controlparams);
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
-    controlparams.radPerEncoderCount = 1.0f;
 #endif
 	initializeMotors();
 };
@@ -95,7 +94,7 @@ void FlexRayHardwareInterface::initializeMotors(){
 #ifdef HARDWARE
     updateMotorState();
 #else
-	ROS_DEBUG("NO HARDWARE, setting numberOfGanglionsConnected to 6");
+	ROS_DEBUG("NO HARDWARE MODE");
     numberOfGanglionsConnected = 6;
 #endif
     ROS_DEBUG("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
@@ -398,18 +397,10 @@ void FlexRayHardwareInterface::exchangeData(){
         
         activeGanglionsMask=InputBuffer[sizeof(GanglionData)>>1];   //active ganglions, generated from usbFlexRay interface
     }
-	updateMotorState();
 #else
 	ROS_DEBUG("NO HARDWARE, using virtual roboy");
-    for(uint ganglion=0; ganglion<NUMBER_OF_GANGLIONS; ganglion++){
-        for(uint motor=0; motor<NUMBER_OF_JOINTS_PER_GANGLION; motor++){
-            if(ganglion<3)
-                GanglionData[ganglion].muscleState[motor].actuatorPos = commandframe0[ganglion].sp[motor]/controlparams.radPerEncoderCount;
-            else
-                GanglionData[ganglion].muscleState[motor].actuatorPos = commandframe1[ganglion].sp[motor]/controlparams.radPerEncoderCount;
-        }
-    }
 #endif
+	updateMotorState();
 }
 
 void FlexRayHardwareInterface::updateCommandFrame(){
