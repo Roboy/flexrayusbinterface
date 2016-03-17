@@ -10,7 +10,7 @@ install libftd2xx v1.1.12 (on ubuntu) via:
 cd path/to/flexrayusbinterface
 sudo dpkg -i lib/libftd2xx_1.1.12_amd64.deb
 ```
-install libftd2xx v1.3.6 (on fedora) via:
+install libftd2xx v1.3.6 (on fedora/arch linux) via:
 ```
 #!bash
 cd path/to/flexrayusbinterface/lib
@@ -24,12 +24,6 @@ cd ..
 cp ftd2xx.h WinTypes.h /usr/local/include/
 ldconfig -v|grep ftd2xx
 exit
-```
-
-Ros dependency through logging functionality
-```
-#!bash
-sudo apt-get install ros-indigo-desktop-full
 ```
 ncurses
 ```
