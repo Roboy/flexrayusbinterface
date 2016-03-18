@@ -1,5 +1,5 @@
 /* 
- * File:   flexRayCommunication.hpp
+ * File:   FlexRayHardwareInterface.hpp
  * Author: letrend
  *
  * Created on November 18, 2015, 4:04 PM
@@ -7,7 +7,7 @@
 
 #pragma once
 
-// comment if no hardware available
+//! comment if no hardware available
 //#define HARDWARE
 #include "VirtualRoboy.hpp"
 
@@ -181,8 +181,10 @@ public:
     unsigned short activeGanglionsMask;
     //! number of connected ganglions
     uint32_t numberOfGanglionsConnected;
-    //! command frames containing motor control parameters for 3 ganglia, respectively
-    comsCommandFrame commandframe0[3], commandframe1[3];
+    //! command frames containing motor control parameters for 3 ganglia
+    comsCommandFrame commandframe0[3];
+	//! command frames containing motor control parameters for 3 ganglia
+	comsCommandFrame  commandframe1[3];
     //! control parameters for motor
     control_Parameters_t controlparams;
     //! Result of each D2XX call
