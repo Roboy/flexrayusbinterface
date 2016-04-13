@@ -10,3 +10,4 @@ flexrayusbinterface
 .idea/
 *.log
 doc/
+build/
