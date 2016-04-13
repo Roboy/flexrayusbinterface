@@ -69,35 +69,30 @@ bool FlexRayHardwareInterface::connect(){
 
 void FlexRayHardwareInterface::initializeMotors(){
     controlparams.tag = 0;			// sint32
-    controlparams.outputPosMax = 1000;	// sint32			
+    controlparams.outputPosMax = 1000;	// sint32
     controlparams.outputNegMax = -1000;		// sint32
     controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
     controlparams.radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
-    controlparams.polyPar[0] = 0;		// float32
-    controlparams.polyPar[1] = 1;
-    controlparams.polyPar[2] = 0;
-    controlparams.polyPar[3] = 0;
-    controlparams.torqueConstant = 1.0;	// float32
-    
     controlparams.params.pidParameters.lastError = 0;	// float32
-    
+
     for(uint i=0;i<3;i++){
         for(uint j=0;j<4;j++)
         {
-            commandframe0[i].sp[j] = 0; 
-            commandframe1[i].sp[j] = 0; 
+            commandframe0[i].sp[j] = 0;
+            commandframe1[i].sp[j] = 0;
         }
     }
-    
-    initPositionControl();
+	updateCommandFrame();
+    initForceControl();
 
 #ifdef HARDWARE
+	checkNumberOfConnectedGanglions();
     updateMotorState();
 #else
 	ROS_DEBUG("NO HARDWARE MODE");
     numberOfGanglionsConnected = 6;
 #endif
-    ROS_DEBUG("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
+    ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,activeGanglionsMask);
 };
 
 void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, float Dgain, float forwardGain, 
@@ -331,7 +326,7 @@ void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float
 	switch (springType){
 		// f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
 		case SoftSpring:// D311-spring
-			polyPar[0]=0.621249; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
+			polyPar[0]=0; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
 			break;
 		case MiddleSpring:
 			polyPar[0]=1.604382; polyPar[1]=0.508932; polyPar[2]=-0.000117; polyPar[3]=0;
@@ -565,18 +560,16 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
 	uint m=0;
 	for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
 		for (uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++){
-			if (motorState[m] == 1) {
-				switch (motorControllerType_backup[m]) {
-					case Position:
-						initPositionControl(ganglion,motor);
-						break;
-					case Velocity:
-						initVelocityControl(ganglion,motor);
-						break;
-					case Force:
-						initForceControl(ganglion,motor);
-						break;
-				}
+			switch (motorControllerType_backup[m]) {
+				case Position:
+					initPositionControl(ganglion,motor);
+					break;
+				case Velocity:
+					initVelocityControl(ganglion,motor);
+					break;
+				case Force:
+					initForceControl(ganglion,motor);
+					break;
 			}
 			m++;
 		}
@@ -655,10 +648,13 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
 								GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] %
 																									NUMBER_OF_JOINTS_PER_GANGLION].actuatorVel *
 								controlparams.radPerEncoderCount);
-					else if (controlmode[m] == 3)
-						trajectories.at(idList[m]).push_back(
-								GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] %
-																									NUMBER_OF_JOINTS_PER_GANGLION].tendonDisplacement);
+					else if (controlmode[m] == 3) {
+						float polyPar[4];
+						polyPar[0]=0; polyPar[1]=0.237536; polyPar[2]=-0.000032; polyPar[3]=0;
+						float tendonDisplacement = GanglionData[idList[m] / NUMBER_OF_JOINTS_PER_GANGLION].muscleState[idList[m] % NUMBER_OF_JOINTS_PER_GANGLION].tendonDisplacement;
+						float force =polyPar[0] + polyPar[1] * tendonDisplacement + polyPar[2] * powf(tendonDisplacement, 2.0f) + polyPar[3] * powf(tendonDisplacement, 3.0f);
+						trajectories.at(idList[m]).push_back(force);
+					}
 				}
 			}
 			sample++;

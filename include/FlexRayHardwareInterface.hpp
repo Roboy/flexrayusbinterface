@@ -8,7 +8,7 @@
 #pragma once
 
 //! comment if no hardware available
-//#define HARDWARE
+#define HARDWARE
 #include "VirtualRoboy.hpp"
 
 #include <ftd2xx.h>
@@ -65,13 +65,13 @@ public:
      * @param spPosMin
      * @param spPosMax
      */
-    void initPositionControl(float Pgain=10000.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
-    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    void initPositionControl(float Pgain=100000.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
     float spPosMin=-100.0, float spPosMax=100.0);
 	/**
 	 * This function initializes position control for one specific motor in a ganglion.
 	 */
-	void initPositionControl(uint ganglion, uint motor, float Pgain=10000.0, float IGain=0.0, float Dgain=0.0,
+	void initPositionControl(uint ganglion, uint motor, float Pgain=100000.0, float IGain=0.0, float Dgain=0.0,
 							 float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
 							 float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
     /**
@@ -88,7 +88,7 @@ public:
      * @param spPosMin
      * @param spPosMax
      */
-    void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0, 
+    void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
 	/**
