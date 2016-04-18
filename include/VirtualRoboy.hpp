@@ -24,21 +24,24 @@ public:
 			OperationMode(om), sp(setpoint), control(controllerOutput){
 
 		// point to respective parameters
-		tag = &controlparams->tag;
-		outputNegMax = &controlparams->outputNegMax;
-		outputPosMax = &controlparams->outputPosMax;
-		spPosMax = &controlparams->spPosMax;
-		spNegMax = &controlparams->spNegMax;
-		radPerEncoderCount = &controlparams->radPerEncoderCount;
-		polyPar[0] = &controlparams->polyPar[0];
-		polyPar[1] = &controlparams->polyPar[1];
-		polyPar[2] = &controlparams->polyPar[2];
-		polyPar[3] = &controlparams->polyPar[3];
-		torqueConstant = &controlparams->torqueConstant;
-		params = &controlparams->params;
+		tag = &m_controlparams->tag;
+		outputNegMax = &m_controlparams->outputNegMax;
+		outputPosMax = &m_controlparams->outputPosMax;
+		spPosMax = &m_controlparams->spPosMax;
+		spNegMax = &m_controlparams->spNegMax;
+		radPerEncoderCount = &m_controlparams->radPerEncoderCount;
+		polyPar[0] = &m_controlparams->polyPar[0];
+		polyPar[1] = &m_controlparams->polyPar[1];
+		polyPar[2] = &m_controlparams->polyPar[2];
+		polyPar[3] = &m_controlparams->polyPar[3];
+		torqueConstant = &m_controlparams->torqueConstant;
+		params = &m_controlparams->params;
+		timePeriod = &m_controlparams->timePeriod;
 
 		// start the control thread
+		cout << "starting PID controller thread with timePeriod " << *timePeriod << endl;
 		control_thread = new std::thread(&VirtualPIDController::control_loop, this);
+		control_thread->detach();
 	};
 
 	/** Destructor*/
@@ -58,9 +61,15 @@ public:
 			dt = elapsedTime;
 
 			*control = outputCalc();
+			// this is just to see something
+			m_muscleState->actuatorPos = *sp*m_controlparams->radPerEncoderCount;
+			m_muscleState->actuatorVel = *sp*m_controlparams->radPerEncoderCount;
+			m_muscleState->tendonDisplacement = *sp*m_controlparams->radPerEncoderCount;
+//			cout << *sp << endl;
 
 			elapsedTime = timer.elapsedTimeMicroSeconds();
 			dt = elapsedTime - dt;
+
 			// if faster than timePeriod sleep for difference
 			if(dt < *timePeriod) {
 				usleep(*timePeriod - dt);
@@ -139,7 +148,7 @@ private:
 	float32 lastError;
 	control_Parameters_t *m_controlparams;
 	muscleState_t *m_muscleState;
-	bool isEnabled = false;
+	bool isEnabled = true;
 	thread *control_thread = nullptr;
 	Timer timer;
 };
@@ -151,8 +160,8 @@ public:
 		m_controller.resize(NUMBER_OF_JOINTS_PER_GANGLION);
 		// each controller
 		for(uint i=0; i<NUMBER_OF_JOINTS_PER_GANGLION; i++){
-			m_controller[i] = new VirtualPIDController(&commandFrame->ControlMode[i],&commandFrame->OperationMode[i],&commandFrame->sp[i],
-													   controlparams, &GanglionData->muscleState[i], &controllerOutput[i]);
+			m_controller[i] = new VirtualPIDController(&m_commandFrame->ControlMode[i],&m_commandFrame->OperationMode[i],&m_commandFrame->sp[i],
+													   m_controlparams, &m_GanglionData->muscleState[i], &controllerOutput[i]);
 		}
 	}
 	~VirtualGanglion(){
@@ -171,17 +180,15 @@ class VirtualRoboy{
 public:
 	VirtualRoboy(ganglionData_t *GanglionData, comsCommandFrame *commandframe0,
 				 comsCommandFrame *commandframe1, control_Parameters_t *controlparams){
+		cout << "building virtual roboy" << endl;
 		m_ganglia.resize(NUMBER_OF_GANGLIONS);
 		// each ganglion gets a reference to its commandframe and its ganglion data frame
 		for(uint i=0; i<NUMBER_OF_GANGLIONS; i++){
 			if(i<3) {
-				m_ganglia[i] = new VirtualGanglion(commandframe0, controlparams, GanglionData, &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
-				++commandframe0;
+				m_ganglia[i] = new VirtualGanglion(&commandframe0[i], controlparams, &GanglionData[i], &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
 			}else {
-				m_ganglia[i] = new VirtualGanglion(commandframe1, controlparams, GanglionData, &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
-				++commandframe1;
+				m_ganglia[i] = new VirtualGanglion(&commandframe1[i-3], controlparams, &GanglionData[i], &controllerOutput[i*NUMBER_OF_JOINTS_PER_GANGLION]);
 			}
-			++GanglionData;
 		}
 	}
 	~VirtualRoboy(){

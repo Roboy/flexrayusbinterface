@@ -12,6 +12,10 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
     }
 #else
     ROS_DEBUG( "No Hardware mode enabled");
+	GanglionData[0].muscleState[0].actuatorPos = 100;
+	GanglionData[0].muscleState[1].actuatorPos = 101;
+	GanglionData[0].muscleState[2].actuatorPos = 102;
+	GanglionData[0].muscleState[3].actuatorPos = 103;
 	virtualRoboy = new VirtualRoboy(&GanglionData[0],&commandframe0[0],&commandframe1[0],&controlparams);
     activeGanglionsMask = 0b111111;
     numberOfGanglionsConnected = 6;
@@ -71,7 +75,12 @@ void FlexRayHardwareInterface::initializeMotors(){
     controlparams.tag = 0;			// sint32
     controlparams.outputPosMax = 1000;	// sint32
     controlparams.outputNegMax = -1000;		// sint32
-    controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
+#ifdef HARDWARE
+	controlparams.timePeriod = 100;		// float32		//in us	// set time period to avoid error case
+#else
+	controlparams.timePeriod = 1000000;		// float32		//in us	// set time period to avoid error case
+#endif
+
     controlparams.radPerEncoderCount = 2*3.14159265359/(2000.0*53.0);	// float32
     controlparams.params.pidParameters.lastError = 0;	// float32
 
