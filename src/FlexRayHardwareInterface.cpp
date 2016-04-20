@@ -8,7 +8,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(){
 	ROS_INFO("Trying to connect to FlexRay");
     while(!connect()){
 		ROS_INFO("retrying...");
-        usleep(1000);
+        usleep(1000000); // sleep for a second
     }
 #else
     ROS_DEBUG( "No Hardware mode enabled");
@@ -45,7 +45,7 @@ bool FlexRayHardwareInterface::connect(){
                         do{
                             spiconfigured = ConfigureSPI(&m_ftHandle, m_clockDivisor);
                         }while(spiconfigured == false);
-                        ROS_INFO("Configuration OK");
+                        ROS_INFO("connection OK");
                         return true;
                     }
 					ROS_INFO("Testing MPSSE failed, retrying!");
