@@ -121,24 +121,29 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
     
     // initialize PID controller in motordriver boards
     for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-        for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+        for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].ControlMode[j] = Position;
-            commandframe0[i].OperationMode[j] = Initialise;
-            commandframe1[i].ControlMode[j] = Position;
-            commandframe1[i].OperationMode[j] = Initialise;
-			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Position;
-			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Position;
+            commandframe0[i].ControlMode[motor] = Position;
+            commandframe0[i].OperationMode[motor] = Initialise;
+            commandframe1[i].ControlMode[motor] = Position;
+            commandframe1[i].OperationMode[motor] = Initialise;
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Position;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Position;
         }
     }
     updateCommandFrame();
     exchangeData();
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].OperationMode[j] = Run;
-        }
+            commandframe0[i].OperationMode[motor] = Run;
+			float pos = GanglionData[i].muscleState[motor].actuatorPos;
+			commandframe0[i].sp[motor] = pos*controlparams.radPerEncoderCount;
+			commandframe1[i].OperationMode[motor] = Run;
+			pos = GanglionData[i+3].muscleState[motor].actuatorPos;
+			commandframe1[i].sp[motor] = pos*controlparams.radPerEncoderCount;
+
+		}
     }
     updateCommandFrame();
     exchangeData();
@@ -164,16 +169,19 @@ void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor, fl
 		commandframe0[ganglion].ControlMode[motor] = Position;
 		commandframe0[ganglion].OperationMode[motor] = Initialise;
 	}else{
-		commandframe1[ganglion].ControlMode[motor] = Position;
-		commandframe1[ganglion].OperationMode[motor] = Initialise;
+		commandframe1[ganglion-3].ControlMode[motor] = Position;
+		commandframe1[ganglion-3].OperationMode[motor] = Initialise;
 	}
 	motorControllerType[ganglion*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Position;
 	updateCommandFrame();
 	exchangeData();
+	float pos = GanglionData[ganglion].muscleState[motor].actuatorPos*controlparams.radPerEncoderCount;
 	if(ganglion<3) {
 		commandframe0[ganglion].OperationMode[motor] = Run;
+		commandframe0[ganglion].sp[motor] = pos;
 	}else{
-		commandframe1[ganglion].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].sp[motor] = pos;
 	}
 	updateCommandFrame();
 	exchangeData();
@@ -196,23 +204,25 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
     
     // initialize PID controller in motordriver boards
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].ControlMode[j] = Velocity;
-            commandframe0[i].OperationMode[j] = Initialise;
-            commandframe1[i].ControlMode[j] = Velocity;
-            commandframe1[i].OperationMode[j] = Initialise;
-			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Velocity;
-			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Velocity;
+            commandframe0[i].ControlMode[motor] = Velocity;
+            commandframe0[i].OperationMode[motor] = Initialise;
+            commandframe1[i].ControlMode[motor] = Velocity;
+            commandframe1[i].OperationMode[motor] = Initialise;
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Velocity;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Velocity;
         }
     }
     updateCommandFrame();
     exchangeData();
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].OperationMode[j] = Run;
+            commandframe0[i].OperationMode[motor] = Run;
+			commandframe0[i].sp[motor] = 0;
+            commandframe1[i].OperationMode[motor] = Run;
+			commandframe1[i].sp[motor] = 0;
         }
     }
     updateCommandFrame();
@@ -247,8 +257,10 @@ void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor, fl
 	exchangeData();
 	if(ganglion<3) {
 		commandframe0[ganglion].OperationMode[motor] = Run;
+		commandframe0[ganglion].sp[motor] = 0;
 	}else{
-		commandframe1[ganglion].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].sp[motor] = 0;
 	}
 	updateCommandFrame();
 	exchangeData();
@@ -292,23 +304,25 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     
     // initialize PID controller in motordriver boards
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].ControlMode[j] = Force;
-            commandframe0[i].OperationMode[j] = Initialise;
-            commandframe1[i].ControlMode[j] = Force;
-            commandframe1[i].OperationMode[j] = Initialise;
-			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+j] = Force;
-			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+j] = Force;
+            commandframe0[i].ControlMode[motor] = Force;
+            commandframe0[i].OperationMode[motor] = Initialise;
+            commandframe1[i].ControlMode[motor] = Force;
+            commandframe1[i].OperationMode[motor] = Initialise;
+			motorControllerType[i*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Force;
+			motorControllerType[(i+NUMBER_OF_GANGLIONS/2)*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Force;
         }
     }
     updateCommandFrame();
     exchangeData();
 	for(uint i=0;i<NUMBER_OF_GANGLIONS/2;i++){
-		for(uint j=0;j<NUMBER_OF_JOINTS_PER_GANGLION;j++)
+		for(uint motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++)
         {
-            commandframe0[i].OperationMode[j] = Run;
-            commandframe1[i].OperationMode[j] = Run;
+            commandframe0[i].OperationMode[motor] = Run;
+			commandframe0[i].sp[motor] = 0;
+            commandframe1[i].OperationMode[motor] = Run;
+			commandframe1[i].sp[motor] = 0;
         }
     }
     updateCommandFrame();
@@ -356,8 +370,8 @@ void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float
 		commandframe0[ganglion].ControlMode[motor] = Force;
 		commandframe0[ganglion].OperationMode[motor] = Initialise;
 	}else{
-		commandframe1[ganglion].ControlMode[motor] = Force;
-		commandframe1[ganglion].OperationMode[motor] = Initialise;
+		commandframe1[ganglion-3].ControlMode[motor] = Force;
+		commandframe1[ganglion-3].OperationMode[motor] = Initialise;
 	}
 	motorControllerType[ganglion*NUMBER_OF_JOINTS_PER_GANGLION+motor] = Force;
 
@@ -365,8 +379,10 @@ void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float
 	exchangeData();
 	if(ganglion<3) {
 		commandframe0[ganglion].OperationMode[motor] = Run;
+		commandframe0[ganglion].sp[motor] = 0;
 	}else{
-		commandframe1[ganglion].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].OperationMode[motor] = Run;
+		commandframe1[ganglion-3].sp[motor] = 0;
 	}
 	updateCommandFrame();
 	exchangeData();

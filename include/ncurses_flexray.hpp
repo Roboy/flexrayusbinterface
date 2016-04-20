@@ -308,6 +308,7 @@ public:
 		refresh();
 		mvgetnstr(5,0,inputstring,30);
 		pos = atof(inputstring);
+		flexray.initForceControl();
 		for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
 			for (uint motor=0;motor<4;motor++){
 				if(ganglion_id < 3)
@@ -316,8 +317,10 @@ public:
 					flexray.commandframe1[ganglion-3].sp[motor] = pos;
 			}
 		}
-		flexray.initForceControl();
+		flexray.updateCommandFrame();
 		processing(runningstring, inputstring, quitstring);
+		// set back to zero force
+		flexray.initForceControl();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
 		noecho();
