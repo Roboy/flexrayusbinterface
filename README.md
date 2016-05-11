@@ -29,6 +29,11 @@ exit
 #!bash
 sudo apt-get install libncurses5-dev 
 ```
+### ros logging ###
+```
+#!bash
+sudo apt-get install ros-indigo-rosout
+```
 ### doxygen OPTIONAL ###
 ```
 #!bash
