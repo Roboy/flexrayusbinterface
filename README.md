@@ -32,7 +32,7 @@ sudo apt-get install libncurses5-dev
 ### ros logging ###
 ```
 #!bash
-sudo apt-get install ros-indigo-rosout
+sudo apt-get install ros-jade-rosout
 ```
 ### doxygen OPTIONAL ###
 ```
