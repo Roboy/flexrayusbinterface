@@ -64,7 +64,7 @@ sudo cp path/to/flexrayusbinterface/udev/30-ftdi.rules /etc/udev/rules.d/
 ## Run the interface with ##
 ```
 #!bash
-cd path/to/flexrayusbinterface
+cd path/to/flexrayusbinterface/bin
 ./flexrayusbinterface
 
 ```
