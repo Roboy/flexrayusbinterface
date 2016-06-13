@@ -29,6 +29,11 @@ exit
 #!bash
 sudo apt-get install libncurses5-dev 
 ```
+### cmake ###
+```
+#!bash
+sudo apt-get install cmake
+```
 ### ros logging ###
 ```
 #!bash
@@ -44,7 +49,9 @@ sudo apt-get install doxygen
 ```
 #!bash
 cd path/to/flexrayusbinterface
-cmake .
+mkdir build
+cd build
+cmake ..
 make
 ```
 
