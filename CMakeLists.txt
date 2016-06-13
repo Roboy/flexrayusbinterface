@@ -1,8 +1,11 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-SET(CMAKE_BUILD_TYPE Debug)
-
 PROJECT ( flexrayusbinterface )
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+SET(CMAKE_BUILD_TYPE Debug)
 
 SET(CMAKE_CXX_FLAGS "--std=gnu++11")
 
@@ -15,7 +18,7 @@ SET( BOOST_LIBS
 
 INCLUDE_DIRECTORIES( "/opt/ros/indigo/include")
 FIND_LIBRARY(ROSCONSOLE_LIBRARY rosconsole
-    /opt/ros/indigo/lib
+    /opt/ros/jade/lib
     NO_DEFAULT_PATH
 )
 

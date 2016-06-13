@@ -11,3 +11,5 @@ flexrayusbinterface
 *.log
 doc/
 build/
+bin/
+lib/
