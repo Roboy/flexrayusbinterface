@@ -6,13 +6,13 @@
 # libftd2xx_INCLUDE_DIRS - headers
 # libftd2xx_LIBRARY - library
 
-FIND_LIBRARY(libftd2xx_LIBRARY ftd2xx
-	${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/build/
-	NO_DEFAULT_PATH
+FIND_LIBRARY(libftd2xx_LIBRARY NAMES ftd2xx
+	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/build/
 )
 
-SET(libftd2xx_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/)
-INCLUDE_DIRECTORIES( ${libftd2xx_INCLUDE_DIRS} )
+FIND_PATH(libftd2xx_INCLUDE_DIRS NAMES ftd2xx.h 
+	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/ 
+)
 
 MARK_AS_ADVANCED(
   libftd2xx_INCLUDE_DIRS
@@ -20,7 +20,8 @@ MARK_AS_ADVANCED(
 
 SET( libftd2xx_FOUND "NO" )
 IF(libftd2xx_INCLUDE_DIRS)
-MESSAGE(STATUS "libftd2xx include dir: ${libftd2xx_INCLUDE_DIRS}" )
+  MESSAGE(STATUS "libftd2xx include dir: ${libftd2xx_INCLUDE_DIRS}" )
+  INCLUDE_DIRECTORIES( ${libftd2xx_INCLUDE_DIRS} )
   IF(libftd2xx_LIBRARY)
     MESSAGE(STATUS "libftd2xx library: ${libftd2xx_LIBRARY}" )
     SET( libftd2xx_FOUND "YES" )
