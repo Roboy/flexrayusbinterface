@@ -1,3 +1,0 @@
-- git: {local-name: flexrayusbinterface, uri: 'https://github.com/Roboy/flexrayusbinterface.git', version: indigo}
-- setup-file:
-    local-name: install_libftd.sh
