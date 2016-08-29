@@ -14,25 +14,26 @@ FIND_PACKAGE(catkin REQUIRED COMPONENTS
     rosconsole
     roscpp)
 
-#FIND_PACKAGE (ncurses REQUIRED)
+FIND_PACKAGE (PkgConfig REQUIRED)
+pkg_check_modules(ncurses++ REQUIRED ncurses++)
 
 # Boost
 FIND_PACKAGE ( Boost COMPONENTS system thread REQUIRED  )
-SET( BOOST_LIBS
-  ${Boost_LIBRARIES}
-)
+
 
 
 
 INCLUDE_DIRECTORIES(    include 
                         ${Boost_INCLUDE_DIR}
-                        ${catkin_INCLUDE_DIRS})
+                        ${catkin_INCLUDE_DIRS}
+                        ${ncurses_INCLUDE_DIRS}
+                        )
 
 
 MESSAGE(STATUS ${CMAKE_SOURCE_DIR})
 
 
-catkin_package(DEPENDS Boost
+catkin_package(DEPENDS Boost ncurses++
                INCLUDE_DIRS include
                CATKIN_DEPENDS common_utilities roscpp rosconsole
                LIBRARIES libflexrayusbinterface)
@@ -41,20 +42,21 @@ ADD_EXECUTABLE( flexrayusbinterface
                         src/FlexRayHardwareInterface.cpp src/main.cpp)
 
 TARGET_LINK_LIBRARIES( flexrayusbinterface 
-                        ${BOOST_LIBS} 
+                        ${Boost_LIBRARIES}
                         -lftd2xx 
                         -lpthread 
-                        -lncurses 
                         ${catkin_LIBRARIES}
+                        ${ncurses_LIBRARIES}
 )
 
 ADD_LIBRARY ( libflexrayusbinterface ${incs}  
                         src/FlexRayHardwareInterface.cpp)
 
 TARGET_LINK_LIBRARIES( libflexrayusbinterface 
-                        ${BOOST_LIBS}
+                        ${Boost_LIBRARIES}
                         -lftd2xx
                         -lpthread
-                        ${ROSCONSOLE_LIBRARY}
+                        ${ROSCONSOLE_LIBRARIES}
                         ${catkin_LIBRARIES}
+                        ${ncurses_LIBRARIES}
 )

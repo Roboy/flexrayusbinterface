@@ -20,6 +20,7 @@
 #include <utility>
 #include "timer.hpp"
 #include <fstream>
+#include <cstdlib>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE 

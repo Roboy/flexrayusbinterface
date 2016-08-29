@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <ncurses_flexray.hpp>
 
 int main(int argc, char* argv[]){
