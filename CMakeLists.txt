@@ -15,7 +15,7 @@ FIND_PACKAGE(catkin REQUIRED COMPONENTS
     roscpp)
 
 FIND_PACKAGE (PkgConfig REQUIRED)
-pkg_check_modules(ncurses++ REQUIRED ncurses++)
+pkg_check_modules(ncurses REQUIRED ncurses)
 
 # Boost
 FIND_PACKAGE ( Boost COMPONENTS system thread REQUIRED  )
@@ -33,7 +33,7 @@ INCLUDE_DIRECTORIES(    include
 MESSAGE(STATUS ${CMAKE_SOURCE_DIR})
 
 
-catkin_package(DEPENDS Boost ncurses++
+catkin_package(DEPENDS Boost ncurses
                INCLUDE_DIRS include
                CATKIN_DEPENDS common_utilities roscpp rosconsole
                LIBRARIES libflexrayusbinterface)
