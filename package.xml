@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>flexrayusbinterface</name>
+  <version>0.0.0</version>
+  <description>the flexray interface</description>
+  <maintainer email="simon.trendel@tum.de">Simon Trendel</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>common_utilities</build_depend>
+  <build_depend>rosconsole</build_depend>
+
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>common_utilities</run_depend>
+  <run_depend>rosconsole</run_depend>
+
+  <export>
+  </export>
+</package>
