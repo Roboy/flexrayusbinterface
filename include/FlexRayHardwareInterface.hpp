@@ -11,7 +11,7 @@
 #define HARDWARE
 #include "VirtualRoboy.hpp"
 
-#include <ftd2xx.h>
+#include "ftd2xx.h"
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
