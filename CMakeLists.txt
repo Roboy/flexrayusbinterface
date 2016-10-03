@@ -28,7 +28,7 @@ find_package(libftd2xx)
 
 # ncurses
 find_package(PkgConfig)
-pkg_check_modules(ncurses REQUIRED ncurses ncursesw)
+pkg_check_modules(ncurses REQUIRED ncurses)
 
 include_directories( "include/" "../common_utilities/include")
 #==============================================================================
