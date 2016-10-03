@@ -36,7 +36,7 @@ include_directories( "include/" "../common_utilities/include")
 #==============================================================================
 add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/main.cpp)
 target_link_libraries(flexrayusbinterface ${Boost_LIBRARIES} ${libftd2xx_LIBRARY} ${ROSCONSOLE_LIBRARY}
-        ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+        ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -ldl )
 #==============================================================================
 # Installation
 #==============================================================================
