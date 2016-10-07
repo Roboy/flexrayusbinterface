@@ -17,9 +17,13 @@ struct MotorData{
 	sint16 tendonDisplacement;
 }motor;
 
+
+
+
+
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling myode muscle via flexray ganglion setup";
-char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce ,[9]exit";
+char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce, [7] resettingSpring, [8] resettAll, [9]exit";
 char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
@@ -111,9 +115,9 @@ public:
 		else
 			mvprintw(18,0,"set point:       %.5f   ",flexray.commandframe1[ganglion_id].sp[motor_id]);
 		print(19,0,cols,"-");
-		mvprintw(20,0,"polyPar: %.5f  %.5f  %.5f  %.5f    ",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[0]);
+		mvprintw(20,0,"polyPar: %.5f  %.5f  %.5f  %.5f    ",flexray.controlparams.polyPar[0],flexray.controlparams.polyPar[1],flexray.controlparams.polyPar[2],flexray.controlparams.polyPar[3]);
 		mvprintw(21,0,"set point limits: %.5f to %.5f     ",flexray.controlparams.spNegMax,flexray.controlparams.spPosMax);
-		refresh();
+	    refresh();
 	}
 	void processing(char* msg1, char* what, char* msg2){
 		char cmd;
@@ -151,6 +155,282 @@ public:
 		}while(cmd != 'q');
 		timeout(-1);
 	}
+
+
+void resetControl(){
+
+	timeout(-1);
+	echo();
+	print(4,0,cols," ");
+	print(5,0,cols," ");
+	clearAll(23);
+	flexray.initVelocityControl(ganglion_id,motor_id);
+	uint count=0;
+	float aux=0;
+	uint p=0;
+	char inputspring[] = " running";
+	float vel;
+	float tendonDisplacement_t[3];
+	float tendonDisplacement_t2[200000];
+	sleep(1);
+
+	pos=0;
+	if(ganglion_id < 3)
+		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+	else
+		flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	querySensoryData();
+	usleep(300000);
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	tendonDisplacement_t[0] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f; //tendon displacemnte iniziale
+	//mvprintw(23,0,"Displacement_t0 %.5f 	",tendonDisplacement_t[0]);
+	refresh();
+	//Shaking the spring
+	uint i;
+	for (i=1;i<3;i++){
+	pos=3;
+	if(ganglion_id < 3)
+		flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+	else
+		flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	querySensoryData();
+	usleep(500000);
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	tendonDisplacement_t[i] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+	//mvprintw(23+i,0,"Displacement_t%d %.5f ",i,tendonDisplacement_t[i]);
+	refresh();
+	}
+	//Relaxing the spring
+	uint t=0;
+	tendonDisplacement_t2[0]=flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+	//mvprintw(23+i,0,"Displacement_t20 %.5f ",tendonDisplacement_t2[t]);
+	refresh();
+		
+	if (tendonDisplacement_t[2]<tendonDisplacement_t[0])
+		vel=3;
+	else if (tendonDisplacement_t[1]<tendonDisplacement_t[2]) 
+		vel=-3;
+		else
+			vel=0;
+	
+	do {
+		pos=vel;
+		if(ganglion_id < 3)
+			flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		else
+			flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	querySensoryData();
+	usleep(300000);
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	tendonDisplacement_t2[t+1]=flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+	t++;
+	//mvprintw(23+i+t,0,"Displacement_t2 %d %.5f ",t,tendonDisplacement_t2[t]);
+	refresh();
+
+	if (tendonDisplacement_t2[t]>tendonDisplacement_t2[t-1])
+		p++;
+
+	else if (tendonDisplacement_t2[t]==tendonDisplacement_t2[t-1]){
+		
+				
+			if (count>0 && tendonDisplacement_t2[t]==aux)
+					count++;
+			else if (count==0){
+					aux=tendonDisplacement_t2[t];
+					count++;
+				}
+			else count=0;
+			}
+
+			}while (count !=4 && p !=3);
+
+	if (p==3)
+		resetControl();
+
+	else {
+		pos=0;
+	if(ganglion_id < 3)
+			flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+		else
+			flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	querySensoryData();
+	sleep(2);
+	refresh();
+
+	//Resetting the sensor displacement
+	flexray.controlparams.tag=1;
+	flexray.commandframe0[0].OperationMode[0] = Initialise;
+	refresh();
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	flexray.updateMotorState();
+	querySensoryData();
+	flexray.controlparams.tag=0;
+	flexray.commandframe0[0].OperationMode[0] = Initialise;
+	refresh();
+	flexray.updateCommandFrame();
+	flexray.exchangeData();
+	flexray.updateMotorState();
+	querySensoryData();
+	mvprintw(22,0,"Sensor Displacement Resetted");
+	refresh();
+	print(4,0,cols," ");
+	print(5,0,cols," ");
+	noecho();
+}
+}
+
+void resetAll(){
+	timeout(-1);
+	echo();
+	print(4,0,cols," ");
+	print(5,0,cols," ");
+	clearAll(23);
+	flexray.initVelocityControl();
+	uint s=0;
+	for (uint ganglion_id=0;ganglion_id<NUMBER_OF_GANGLIONS;ganglion_id++){ //NUMBER_OF_GANGLIONS has to be adjusted to the number of ganglions actually connected 
+			for (uint motor_id=0;motor_id<4;motor_id++){
+				uint count=0;
+				float aux=0;
+				uint p=0;
+				char inputspring[] = " running";
+				float vel;
+				float tendonDisplacement_t[3];
+				float tendonDisplacement_t2[200000];
+				sleep(1);
+
+				pos=0;
+				if(ganglion_id < 3)
+					flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+				else
+					flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				querySensoryData();
+				usleep(300000);
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				tendonDisplacement_t[0] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f; //tendon displacemnte iniziale
+				//mvprintw(23,0,"Displacement_t0 %.5f 	",tendonDisplacement_t[0]);
+				refresh();
+
+				//Shaking the spring
+				uint i;
+				for (i=1;i<3;i++){
+				pos=3;
+				if(ganglion_id < 3)
+					flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+				else
+					flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				querySensoryData();
+				usleep(500000);
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				tendonDisplacement_t[i] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+				//mvprintw(23+i,0,"Displacement_t%d %.5f ",i,tendonDisplacement_t[i]);
+				refresh();
+				}
+				//relaxing the spring
+				uint t=0;
+				tendonDisplacement_t2[0]=flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+				//mvprintw(23+i,0,"Displacement_t20 %.5f ",tendonDisplacement_t2[t]);
+				refresh();
+					
+				if (tendonDisplacement_t[2]<tendonDisplacement_t[0])
+					vel=3;
+				else if (tendonDisplacement_t[1]<tendonDisplacement_t[2]) 
+					vel=-3;
+					else
+						vel=0;
+				
+				do {
+					pos=vel;
+					if(ganglion_id < 3)
+						flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+					else
+						flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				querySensoryData();
+				usleep(300000);
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				tendonDisplacement_t2[t+1]=flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement/32768.0f;
+				t++;
+				//mvprintw(23+i+t,0,"Displacement_t2 %d %.5f ",t,tendonDisplacement_t2[t]);
+				refresh();
+
+				if (tendonDisplacement_t2[t]>tendonDisplacement_t2[t-1])
+					p++;
+
+				else if (tendonDisplacement_t2[t]==tendonDisplacement_t2[t-1]){
+					
+							
+						if (count>0 && tendonDisplacement_t2[t]==aux)
+								count++;
+						else if (count==0){
+								aux=tendonDisplacement_t2[t];
+								count++;
+							}
+						else count=0;
+						}
+
+						}while (count !=4 && p !=3);
+
+				if (p==3)
+					resettingcontrol();
+
+				else {
+					pos=0;
+				if(ganglion_id < 3)
+						flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
+					else
+						flexray.commandframe1[ganglion_id-3].sp[motor_id] = pos;
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				querySensoryData();
+				sleep(2);
+				refresh();
+				//Resetting the spring
+				flexray.controlparams.tag=1;
+				flexray.commandframe0[0].OperationMode[0] = Initialise;
+				refresh();
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				flexray.updateMotorState();
+				querySensoryData();
+				flexray.controlparams.tag=0;
+				flexray.commandframe0[0].OperationMode[0] = Initialise;
+				refresh();
+				flexray.updateCommandFrame();
+				flexray.exchangeData();
+				flexray.updateMotorState();
+				querySensoryData();
+				mvprintw(22+s,0,"Sensor Displacement Resetted Motor: %d Ganglion: %d ", motor_id, ganglion_id);
+				refresh();
+				s++;
+				}
+			}
+		}
+	print(4,0,cols," ");
+	print(5,0,cols," ");
+	noecho();
+	}
+
+
 	void positionControl(){
 		timeout(-1);
 		echo();
@@ -178,7 +458,9 @@ public:
 		echo();
 		print(4,0,cols," ");
 		print(5,0,cols," ");
-		flexray.initVelocityControl(ganglion_id,motor_id);
+		flexray.initVelocityControl(ganglion_id,motor_id, 100.0,0.0,0.0,
+                              0.0,  0.0,  0.0,  0.0,
+                              0.0,  -5.0, 5.0);
 		printMessage(4,0,setvelstring);
 		mvchgat(4, 0, strlen(setvelstring), A_BOLD, 1, NULL);
 		refresh();

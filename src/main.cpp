@@ -31,6 +31,13 @@ int main(int argc, char* argv[]){
 			case '6':
 				ncurse.setAllToForce();
 				break;
+			case '7':
+				ncurse.resetControl();
+				break;
+
+			case '8':
+			ncurse.resetAll();
+			break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');
