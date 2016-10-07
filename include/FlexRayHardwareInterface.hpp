@@ -40,8 +40,8 @@ class FlexRayHardwareInterface{
 public:
     /** Constructor */
     FlexRayHardwareInterface();
-	/** Destructor */
-	~FlexRayHardwareInterface();
+    /** Destructor */
+    ~FlexRayHardwareInterface();
     /**
      * connect to flexray
      * @return success
@@ -51,9 +51,16 @@ public:
      * use this to initialize the motors
      */
     void initializeMotors();
-    
-    /**
-     * This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
+
+     /**
+     * This function resets the sensor displacement of one motor
+     */
+
+    void relaxSpring(uint ganglion_id,uint motor_id,int controlmode);
+
+
+     /**
+     *This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
      * documentation for details on control parameters.
      * @param Pgain
      * @param IGain
@@ -69,12 +76,12 @@ public:
     void initPositionControl(float Pgain=80.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
     float spPosMin=-100.0, float spPosMax=100.0);
-	/**
-	 * This function initializes position control for one specific motor in a ganglion.
-	 */
-	void initPositionControl(uint ganglion, uint motor, float Pgain=80.0, float IGain=0.0, float Dgain=0.0,
-							 float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
-							 float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
+    /**
+     * This function initializes position control for one specific motor in a ganglion.
+     */
+    void initPositionControl(uint ganglion, uint motor, float Pgain=80.0, float IGain=0.0, float Dgain=0.0,
+                             float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
+                             float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
     /**
      * This function initializes velocity control for all motors on all ganglia. Pleaser refer to myorobotics
      * documentation for details on control parameters.
@@ -92,12 +99,12 @@ public:
     void initVelocityControl(float Pgain=100.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0);
-	/**
-	 * This function initializes velocity control for one specific motor in a ganglion.
-	 */
-	void initVelocityControl(uint ganglion, uint motor, float Pgain=100.0, float IGain=0.0, float Dgain=0.0,
-							 float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
-							 float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
+    /**
+     * This function initializes velocity control for one specific motor in a ganglion.
+     */
+    void initVelocityControl(uint ganglion, uint motor, float Pgain=100.0, float IGain=0.0, float Dgain=0.0,
+                             float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
+                             float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
     
     /**
      * This function initializes force control for all motors on all ganglia. Pleaser refer to myorobotics
@@ -116,12 +123,12 @@ public:
     void initForceControl(float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
-	/**
-	 * This function initializes force control for one specific motor in a ganglion.
-	 */
-	void initForceControl(uint ganglion, uint motor, float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
-						  float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
-						  float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
+    /**
+     * This function initializes force control for one specific motor in a ganglion.
+     */
+    void initForceControl(uint ganglion, uint motor, float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
+                          float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
+                          float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
     /**
      * This function exchanges data between interface and motors
      */
@@ -139,42 +146,42 @@ public:
      */
     uint32_t NumberOfSetBits(uint32_t i);
 
-	/**
-	 * Checks the number of connected ganglia
-	 * @return number of connected ganglia
-	 */
+    /**
+     * Checks the number of connected ganglia
+     * @return number of connected ganglia
+     */
     uint32_t checkNumberOfConnectedGanglions();
 
-	/**
-	 * Checks which motors are ready and updates motorState
-	 */
-	void updateMotorState();
+    /**
+     * Checks which motors are ready and updates motorState
+     */
+    void updateMotorState();
 
-	/**
-	 * Measure connection time via multiple calls to exchangeData()
-	 */
-	double measureConnectionTime();
+    /**
+     * Measure connection time via multiple calls to exchangeData()
+     */
+    double measureConnectionTime();
 
-	/**
-	 * Records trajectories of all available motors
-	 * @param samplingTime - sampling time in milliseconds
-	 * @param recordTime - time span to record in seconds
-	 * @param trajectories - reference will be filled with trajectories
-	 * @param idList - record from these motors
-	 * @param controlMode - what values should be recorded
-	 */
-	float recordTrajectories(float samplingTime, float recordTime, std::vector<std::vector<float>> &trajectories,
-							 std::vector<int> &idList, std::vector<int> &controlMode, std::string name="");
-	/**
-	 * Records trajectories of all available motors
-	 * @param samplingTime - sampling time in milliseconds
-	 * @param trajectories - reference will be filled with trajectories
-	 * @param idList - record from these motors
-	 * @param controlMode - what values should be recorded
-	 * @param stop_recording - pointer to steering bool
-	 */
-	float recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
-							 std::vector<int> &idList, std::vector<int> &controlMode, int8_t *recording);
+    /**
+     * Records trajectories of all available motors
+     * @param samplingTime - sampling time in milliseconds
+     * @param recordTime - time span to record in seconds
+     * @param trajectories - reference will be filled with trajectories
+     * @param idList - record from these motors
+     * @param controlMode - what values should be recorded
+     */
+    float recordTrajectories(float samplingTime, float recordTime, std::vector<std::vector<float>> &trajectories,
+                             std::vector<int> &idList, std::vector<int> &controlMode, std::string name="");
+    /**
+     * Records trajectories of all available motors
+     * @param samplingTime - sampling time in milliseconds
+     * @param trajectories - reference will be filled with trajectories
+     * @param idList - record from these motors
+     * @param controlMode - what values should be recorded
+     * @param stop_recording - pointer to steering bool
+     */
+    float recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
+                             std::vector<int> &idList, std::vector<int> &controlMode, int8_t *recording);
 
     //! upstream from ganglions to PC
     ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
@@ -184,21 +191,21 @@ public:
     uint32_t numberOfGanglionsConnected;
     //! command frames containing motor control parameters for 3 ganglia
     comsCommandFrame commandframe0[3];
-	//! command frames containing motor control parameters for 3 ganglia
-	comsCommandFrame  commandframe1[3];
+    //! command frames containing motor control parameters for 3 ganglia
+    comsCommandFrame  commandframe1[3];
     //! control parameters for motor
     control_Parameters_t controlparams;
     //! Result of each D2XX call
     FT_STATUS ftStatus;
-	//! vector containing a status for each motor
-	std::vector<int8_t> motorState;
-	//! vector containing the controller type for each motor
-	std::vector<int8_t> motorControllerType;
+    //! vector containing a status for each motor
+    std::vector<int8_t> motorState;
+    //! vector containing the controller type for each motor
+    std::vector<int8_t> motorControllerType;
 private:
-	//! virtual roboy for simulation
-	VirtualRoboy* virtualRoboy;
-	//! timer
-	Timer timer;
+    //! virtual roboy for simulation
+    VirtualRoboy* virtualRoboy;
+    //! timer
+    Timer timer;
     //! Handle of the FTDI device
     FT_HANDLE m_ftHandle;
     //! number of devices connected
@@ -206,7 +213,7 @@ private:
     //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
     uint m_clockDivisor = 2;
     //! this will be send via flexray
-    WORD dataset[DATASETSIZE];	
+    WORD dataset[DATASETSIZE];  
     //! this will contain data coming from flexray
     WORD InputBuffer[DATASETSIZE];
     /**
@@ -293,31 +300,30 @@ private:
     char errorMessage[256];
     std::vector<std::string> errorMessages = {
         "FT_OK - it's all good",
-	"FT_INVALID_HANDLE",
-	"FT_DEVICE_NOT_FOUND",
-	"FT_DEVICE_NOT_OPENED",
-	"FT_IO_ERROR",
-	"FT_INSUFFICIENT_RESOURCES",
-	"FT_INVALID_PARAMETER",
-	"FT_INVALID_BAUD_RATE",
-	"FT_DEVICE_NOT_OPENED_FOR_ERASE",
-	"FT_DEVICE_NOT_OPENED_FOR_WRITE",
-	"FT_FAILED_TO_WRITE_DEVICE",
-	"FT_EEPROM_READ_FAILED",
-	"FT_EEPROM_WRITE_FAILED",
-	"FT_EEPROM_ERASE_FAILED",
-	"FT_EEPROM_NOT_PRESENT",
-	"FT_EEPROM_NOT_PROGRAMMED",
-	"FT_INVALID_ARGS",
-	"FT_NOT_SUPPORTED",
-	"FT_OTHER_ERROR",
-	"FT_DEVICE_LIST_NOT_READY"
+    "FT_INVALID_HANDLE",
+    "FT_DEVICE_NOT_FOUND",
+    "FT_DEVICE_NOT_OPENED",
+    "FT_IO_ERROR",
+    "FT_INSUFFICIENT_RESOURCES",
+    "FT_INVALID_PARAMETER",
+    "FT_INVALID_BAUD_RATE",
+    "FT_DEVICE_NOT_OPENED_FOR_ERASE",
+    "FT_DEVICE_NOT_OPENED_FOR_WRITE",
+    "FT_FAILED_TO_WRITE_DEVICE",
+    "FT_EEPROM_READ_FAILED",
+    "FT_EEPROM_WRITE_FAILED",
+    "FT_EEPROM_ERASE_FAILED",
+    "FT_EEPROM_NOT_PRESENT",
+    "FT_EEPROM_NOT_PROGRAMMED",
+    "FT_INVALID_ARGS",
+    "FT_NOT_SUPPORTED",
+    "FT_OTHER_ERROR",
+    "FT_DEVICE_LIST_NOT_READY"
     };
     enum{
         SoftSpring,
         MiddleSpring,
         HardSpring
     };
-	enum SteeringCommand {STOP_TRAJECTORY=0,PLAY_TRAJECTORY,PAUSE_TRAJECTORY,REWIND_TRAJECTORY};
+    enum SteeringCommand {STOP_TRAJECTORY=0,PLAY_TRAJECTORY,PAUSE_TRAJECTORY,REWIND_TRAJECTORY};
 };
-
