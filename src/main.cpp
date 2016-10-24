@@ -31,6 +31,9 @@ int main(int argc, char* argv[]){
 			case '6':
 				ncurse.setAllToForce();
 				break;
+            case '7':
+                ncurse.remoteAndroidControl();
+                break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');

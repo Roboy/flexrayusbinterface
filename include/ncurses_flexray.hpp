@@ -2,6 +2,9 @@
 
 #include "FlexRayHardwareInterface.hpp"
 #include <ncurses.h>
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "common_utilities/MotorStatus.h"
 
 enum COLORS{
 	CYAN=1,
@@ -19,7 +22,7 @@ struct MotorData{
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling myode muscle via flexray ganglion setup";
-char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce ,[9]exit";
+char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce , [7]android, [9]exit";
 char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
@@ -36,6 +39,9 @@ char quitstring[] = " [hit q to quit]";
 char averageconnectionspeedstring[] = "average connection speed: ";
 char logfilestring[] = "see logfile measureConnectionTime.log for details";
 char filenamestring[] = "enter filename to save recorded trajectories: ";
+char remotecontrolactivestring[] = "remote control active [hit q to quit]";
+char receivedupdatestring[] = "received update";
+char errormessage[] = "Error: expected 16 motor values";
 char byebyestring[] = "BYE BYE!";
 
 class NCurses_flexray{
@@ -57,6 +63,16 @@ public:
 		print(6,0,cols,"-");
 		querySensoryData();
 		printMessage(3,0,commandstring);
+
+        if (!ros::isInitialized()) {
+            int argc = 0;
+            char **argv = NULL;
+            ros::init(argc, argv, "flexray_ncurse_interface", ros::init_options::NoSigintHandler);
+        }
+        nh = ros::NodeHandlePtr(new ros::NodeHandle);
+
+        spinner = boost::shared_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(1));
+        spinner->start();
 	}
 	~NCurses_flexray(){
 		clearAll(0);
@@ -325,6 +341,71 @@ public:
 		print(5,0,cols," ");
 		noecho();
 	}
+
+    void remoteAndroidControl(){
+        motor_status_pub = nh->advertise<common_utilities::MotorStatus>("/roboy/motor_status",1);
+        motor_cmd_sub = nh->subscribe("/roboy/motor_cmd", 1, &NCurses_flexray::processCommand, this);
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		flexray.initForceControl();
+        print(5,0,cols," ");
+        printMessage(5,0, remotecontrolactivestring, RED);
+        timeout(10);
+        char cmd;
+        do{
+            common_utilities::MotorStatus msg;
+            for(int ganglion=0; ganglion<NUMBER_OF_GANGLIONS; ganglion++){
+                for(int motor=0;motor<NUMBER_OF_JOINTS_PER_GANGLION;motor++) {
+                    msg.jointPos.push_back(flexray.GanglionData[ganglion].muscleState[motor].jointPos);
+                    msg.actuatorPos.push_back(flexray.GanglionData[ganglion].muscleState[motor].actuatorPos *
+                                              flexray.controlparams.radPerEncoderCount);
+                    msg.actuatorVel.push_back(flexray.GanglionData[ganglion].muscleState[motor].actuatorVel *
+                                              flexray.controlparams.radPerEncoderCount);
+                    msg.actuatorCurrent.push_back(flexray.GanglionData[ganglion].muscleState[motor].actuatorCurrent);
+                    msg.tendonDisplacement.push_back(flexray.GanglionData[ganglion].muscleState[motor].tendonDisplacement);
+                }
+            }
+            motor_status_pub.publish(msg);
+
+            mvchgat(5, 0, strlen(remotecontrolactivestring), A_BLINK, 2, NULL);
+            cmd = mvgetch(5,22);
+        }while(cmd != 'q');
+        motor_status_pub.shutdown();
+        motor_cmd_sub.shutdown();
+		// set back to zero force
+		flexray.initForceControl();
+		print(4,0,cols," ");
+		print(5,0,cols," ");
+		noecho();
+	}
+
+    void processCommand( const std_msgs::String::ConstPtr &msg){
+        float m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15;
+        if(sscanf(msg->data.c_str(), "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f",
+               &m0, &m1, &m2, &m3, &m4, &m5, &m6, &m7, &m8, &m9, &m10, &m11, &m12, &m13, &m14, &m15) != 16){
+            printMessage(4,0,errormessage,RED);
+            return;
+        }
+        flexray.commandframe0[0].sp[0] = m0;
+        flexray.commandframe0[0].sp[1] = m1;
+        flexray.commandframe0[0].sp[2] = m2;
+        flexray.commandframe0[0].sp[3] = m3;
+        flexray.commandframe0[1].sp[0] = m4;
+        flexray.commandframe0[1].sp[1] = m5;
+        flexray.commandframe0[1].sp[2] = m6;
+        flexray.commandframe0[1].sp[3] = m7;
+        flexray.commandframe0[2].sp[0] = m8;
+        flexray.commandframe0[2].sp[1] = m9;
+        flexray.commandframe0[2].sp[2] = m10;
+        flexray.commandframe0[2].sp[3] = m11;
+        flexray.commandframe0[3].sp[0] = m12;
+        flexray.commandframe0[3].sp[1] = m13;
+        flexray.commandframe0[3].sp[2] = m14;
+        flexray.commandframe0[3].sp[3] = m15;
+        printMessage(4,0,receivedupdatestring,GREEN);
+        flexray.updateCommandFrame();
+        flexray.exchangeData();
+    }
 private:
 	FlexRayHardwareInterface flexray;
 	uint rows, cols;
@@ -333,4 +414,8 @@ private:
 	uint motor_id=0;
 	char inputstring[30];
 	MotorData motor;
+    ros::NodeHandlePtr nh;
+    ros::Publisher motor_status_pub;
+    ros::Subscriber motor_cmd_sub;
+    boost::shared_ptr<ros::AsyncSpinner> spinner;
 };
