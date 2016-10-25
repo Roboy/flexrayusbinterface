@@ -9,16 +9,15 @@ set(CMAKE_CXX_FLAGS "--std=gnu++11 -g")
 #==============================================================================
 # Dependencies
 #==============================================================================
+#==============================================================================
+# Dependencies
+#==============================================================================
+find_package(catkin REQUIRED COMPONENTS roscpp )
+catkin_package(CATKIN_DEPENDS message_runtime)
+
 # Boost
 find_package ( Boost COMPONENTS system thread REQUIRED  )
 include_directories( ${Boost_INCLUDE_DIR} )
-
-# ros console
-include_directories( "/opt/ros/jade/include")
-find_library(ROSCONSOLE_LIBRARY rosconsole
-    /opt/ros/jade/lib
-    NO_DEFAULT_PATH
-)
 
 # pthread
 find_package (Threads)
@@ -28,15 +27,18 @@ find_package(libftd2xx)
 
 # ncurses
 find_package(PkgConfig)
-pkg_check_modules(ncurses REQUIRED ncurses ncursesw)
+pkg_check_modules(ncurses REQUIRED ncurses)
 
-include_directories( "include/" "../common_utilities/include")
+include_directories( ${catkin_INCLUDE_DIRS}
+        include/
+        ../common_utilities/include
+        )
 #==============================================================================
 # Application
 #==============================================================================
 add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/main.cpp)
-target_link_libraries(flexrayusbinterface ${Boost_LIBRARIES} ${libftd2xx_LIBRARY} ${ROSCONSOLE_LIBRARY}
-        ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(flexrayusbinterface ${Boost_LIBRARIES} ${libftd2xx_LIBRARY} ${catkin_LIBRARIES}
+        ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -ldl )
 #==============================================================================
 # Installation
 #==============================================================================

@@ -34,10 +34,12 @@ int main(int argc, char* argv[]){
 			case '7':
 				ncurse.resetControl();
 				break;
-
 			case '8':
-			ncurse.resetAll();
-			break;
+                ncurse.resetAll();
+                break;
+            case 'r':
+                ncurse.remoteAndroidControl();
+                break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');
