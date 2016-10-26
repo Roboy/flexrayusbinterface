@@ -37,6 +37,7 @@ include_directories( ${catkin_INCLUDE_DIRS}
 # Application
 #==============================================================================
 add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/main.cpp)
+add_dependencies(flexrayusbinterface common_utilities_gencpp)
 target_link_libraries(flexrayusbinterface ${Boost_LIBRARIES} ${libftd2xx_LIBRARY} ${catkin_LIBRARIES}
         ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -ldl )
 #==============================================================================
