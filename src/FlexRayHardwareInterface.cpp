@@ -643,9 +643,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
     for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
         for (uint motor=0;motor<4;motor++){
             if(ganglion<3)
-                commandframe0[ganglion].sp[motor] = 4.0f;
+                commandframe0[ganglion].sp[motor] = 6.0f;
             else
-                commandframe1[ganglion].sp[motor] = 4.0f;
+                commandframe1[ganglion-3].sp[motor] = 6.0f;
         }
     }
     updateCommandFrame();
@@ -689,25 +689,26 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
         time ( &rawtime );
         timeinfo = localtime ( &rawtime );
         char str[200];
-        sprintf(str, "/home/letrend/workspace/ros_hierarchy/src/flexrayusbinterface/recording_%s.log",asctime(timeinfo));
+        sprintf(str, "/home/letrend/workspace/roboy-ros-control/src/flexrayusbinterface/recording_%s.log",asctime(timeinfo));
         name = str;
     }
 
     outfile.open (name);
     if(outfile.is_open()){
         outfile << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
-        outfile << "<root>" << std::endl;
+        outfile << "roboybehavior name=" << name << " behaviorid=\"200\"> " << std::endl;
         uint m = 0;
         char motorname[10];
         for(uint m=0; m<idList.size(); m++){
             sprintf(motorname, "motor%d", idList[m]);
-            outfile << "   <" << motorname << std::endl;
+            outfile <<  "<trajectory motorid=\"" << idList[m] << "\" controlmode=\"" << controlmode[m] <<"\" samplerate=\"" << samplingTime << "\">" << std::endl;
+            outfile << "<waypointlist>" << std::endl;
             for(uint i=0; i<trajectories[idList[m]].size(); i++)
                 outfile << trajectories[idList[m]][i] << " ";
-            outfile << "   >" << std::endl;
-            outfile << "   </"<< motorname << ">" << std::endl;
+            outfile << "</waypointlist>" << std::endl;
+            outfile << "</trajectory>" << std::endl;
         }
-        outfile << "</root>" << std::endl;
+        outfile << "</roboybehavior>" << std::endl;
         outfile.close();
     }
 
@@ -717,7 +718,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
             if(ganglion<3)
                 commandframe0[ganglion].sp[motor] = 0.0f;
             else
-                commandframe1[ganglion].sp[motor] = 0.0f;
+                commandframe1[ganglion-3].sp[motor] = 0.0f;
         }
     }
     updateCommandFrame();
@@ -748,7 +749,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
             if(ganglion<3)
                 commandframe0[ganglion].sp[motor] = setPoints_backup[i];
             else
-                commandframe1[ganglion].sp[motor] = setPoints_backup[i];
+                commandframe1[ganglion-3].sp[motor] = setPoints_backup[i];
             i++;
         }
     }
@@ -783,9 +784,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
     for (uint ganglion=0;ganglion<NUMBER_OF_GANGLIONS;ganglion++){
         for (uint motor=0;motor<4;motor++){
             if(ganglion<3)
-                commandframe0[ganglion].sp[motor] = 4.0f;
+                commandframe0[ganglion].sp[motor] = 6.0f;
             else
-                commandframe1[ganglion].sp[motor] = 4.0f;
+                commandframe1[ganglion-3].sp[motor] = 6.0f;
         }
     }
     updateCommandFrame();
@@ -841,7 +842,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
             if(ganglion<3)
                 commandframe0[ganglion].sp[motor] = 0.0f;
             else
-                commandframe1[ganglion].sp[motor] = 0.0f;
+                commandframe1[ganglion-3].sp[motor] = 0.0f;
         }
     }
     updateCommandFrame();
@@ -874,7 +875,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
             if(ganglion<3)
                 commandframe0[ganglion].sp[motor] = setPoints_backup[i];
             else
-                commandframe1[ganglion].sp[motor] = setPoints_backup[i];
+                commandframe1[ganglion-3].sp[motor] = setPoints_backup[i];
             i++;
         }
     }

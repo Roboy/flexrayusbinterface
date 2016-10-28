@@ -4,7 +4,9 @@
 #include <ncurses.h>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float32.h"
 #include "common_utilities/MotorStatus.h"
+#include "common_utilities/MotorCommand.h"
 
 enum COLORS {
     CYAN = 1,
@@ -23,7 +25,7 @@ struct MotorData {
 
 //! standard query messages
 char welcomestring[] = "commandline tool for controlling myode muscle via flexray ganglion setup";
-char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce, [7] resettingSpring, [8] resettAll, [r]android, [9]exit";
+char commandstring[] = "[0]position, [1]velocity, [2]force, [3]switch motor, [4]connection speed, [5]record, [6]allToForce, [7] resettingSpring, [8] resettAll, [r]android, [p]publishMotorInfo, [9]exit";
 char setpointstring[] = "set point (rad) ?";
 char setvelstring[] = "set velocity (rad/s) ?";
 char setforcestring[] = "set force (N) ?";
@@ -41,8 +43,9 @@ char averageconnectionspeedstring[] = "average connection speed: ";
 char logfilestring[] = "see logfile measureConnectionTime.log for details";
 char filenamestring[] = "enter filename to save recorded trajectories: ";
 char remotecontrolactivestring[] = "remote control active [hit q to quit]";
+char publishingmotorstring[] = "publishing motor status[hit q to quit]";
 char receivedupdatestring[] = "received update";
-char errormessage[] = "Error: expected 16 motor values";
+char errormessage[] = "Error: received update for motor that is not connected";
 char byebyestring[] = "BYE BYE!";
 
 class NCurses_flexray {
@@ -601,9 +604,8 @@ public:
         print(5, 0, cols, " ");
         printMessage(4, 0, recordingstring, RED);
         std::vector<std::vector<float>> trajectories;
-        std::vector<int> idList = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-                                   23};
-        std::vector<int> controlmode(24, 1);
+        std::vector<int> idList = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        std::vector<int> controlmode(16, 1);
         float averageSamplingTime = flexray.recordTrajectories(samplingTime, recordTime, trajectories, idList,
                                                                controlmode, name);
         print(4, 0, cols, " ");
@@ -646,7 +648,9 @@ public:
 
     void remoteAndroidControl() {
         motor_status_pub = nh->advertise<common_utilities::MotorStatus>("/roboy/motor_status", 1);
-        motor_cmd_sub = nh->subscribe("/roboy/motor_cmd", 1, &NCurses_flexray::processCommand, this);
+        motor_cmd_pos_sub = nh->subscribe("/roboy/motor_cmd_pos", 100, &NCurses_flexray::processPositionCommand, this);
+        motor_cmd_vel_sub = nh->subscribe("/roboy/motor_cmd_vel", 100, &NCurses_flexray::processVelocityCommand, this);
+        motor_cmd_force_sub = nh->subscribe("/roboy/motor_cmd_force", 100, &NCurses_flexray::processForceCommand, this);
         print(4, 0, cols, " ");
         print(5, 0, cols, " ");
         flexray.initForceControl();
@@ -674,7 +678,9 @@ public:
             cmd = mvgetch(5, 22);
         } while (cmd != 'q');
         motor_status_pub.shutdown();
-        motor_cmd_sub.shutdown();
+        motor_cmd_pos_sub.shutdown();
+        motor_cmd_vel_sub.shutdown();
+        motor_cmd_force_sub.shutdown();
         // set back to zero force
         flexray.initForceControl();
         print(4, 0, cols, " ");
@@ -682,29 +688,90 @@ public:
         noecho();
     }
 
-    void processCommand(const std_msgs::String::ConstPtr &msg) {
-        float m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15;
-        if (sscanf(msg->data.c_str(), "%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f",
-                   &m0, &m1, &m2, &m3, &m4, &m5, &m6, &m7, &m8, &m9, &m10, &m11, &m12, &m13, &m14, &m15) != 16) {
+    void publishMotorInfo(){
+        flexray.initForceControl();
+        char cmd;
+        vector<ros::Publisher> displacement_pub(NUMBER_OF_GANGLIONS*NUMBER_OF_JOINTS_PER_GANGLION);
+        int i=0;
+        for (int ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++) {
+            for (int motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++) {
+                char topic[100];
+                sprintf(topic, "/roboy/ganglion%d/motor%d/displacement", ganglion, motor);
+                displacement_pub[i++] = nh->advertise<std_msgs::Float32>(topic, 100);
+                if (ganglion_id < 3)
+                    flexray.commandframe0[ganglion].sp[motor] = 6.0f;
+                else
+                    flexray.commandframe1[ganglion - 3].sp[motor] = 6.0f;
+            }
+        }
+        flexray.updateCommandFrame();
+        do {
+            flexray.exchangeData();
+            i=0;
+            for (int ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++) {
+                for (int motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++) {
+                    std_msgs::Float32 msg;
+                    msg.data = flexray.GanglionData[ganglion].muscleState[motor].tendonDisplacement / 32768.0f;
+                    displacement_pub[i++].publish(msg);
+                }
+            }
+            mvchgat(5, 0, strlen(publishingmotorstring), A_BLINK, 2, NULL);
+            cmd = mvgetch(5, strlen(publishingmotorstring));
+        } while (cmd != 'q');
+        i=0;
+        for (int ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++) {
+            for (int motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++) {
+                displacement_pub[i++].shutdown();
+            }
+        }
+    }
+
+    void processPositionCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
             printMessage(4, 0, errormessage, RED);
             return;
         }
-        flexray.commandframe0[0].sp[0] = m0;
-        flexray.commandframe0[0].sp[1] = m1;
-        flexray.commandframe0[0].sp[2] = m2;
-        flexray.commandframe0[0].sp[3] = m3;
-        flexray.commandframe0[1].sp[0] = m4;
-        flexray.commandframe0[1].sp[1] = m5;
-        flexray.commandframe0[1].sp[2] = m6;
-        flexray.commandframe0[1].sp[3] = m7;
-        flexray.commandframe0[2].sp[0] = m8;
-        flexray.commandframe0[2].sp[1] = m9;
-        flexray.commandframe0[2].sp[2] = m10;
-        flexray.commandframe0[2].sp[3] = m11;
-        flexray.commandframe0[3].sp[0] = m12;
-        flexray.commandframe0[3].sp[1] = m13;
-        flexray.commandframe0[3].sp[2] = m14;
-        flexray.commandframe0[3].sp[3] = m15;
+        uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
+        uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
+        flexray.initPositionControl(motor, ganglion);
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION < 3)
+            flexray.commandframe0[ganglion].sp[motor] = msg->setpoint;
+        else
+            flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
+        printMessage(4, 0, receivedupdatestring, GREEN);
+        flexray.updateCommandFrame();
+        flexray.exchangeData();
+    }
+
+    void processVelocityCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
+            printMessage(4, 0, errormessage, RED);
+            return;
+        }
+        uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
+        uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
+        flexray.initVelocityControl(motor, ganglion);
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION < 3)
+            flexray.commandframe0[ganglion].sp[motor] = msg->setpoint;
+        else
+            flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
+        printMessage(4, 0, receivedupdatestring, GREEN);
+        flexray.updateCommandFrame();
+        flexray.exchangeData();
+    }
+
+    void processForceCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
+            printMessage(4, 0, errormessage, RED);
+            return;
+        }
+        uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
+        uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
+        flexray.initForceControl(motor, ganglion);
+        if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION < 3)
+            flexray.commandframe0[ganglion].sp[motor] = msg->setpoint;
+        else
+            flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
         printMessage(4, 0, receivedupdatestring, GREEN);
         flexray.updateCommandFrame();
         flexray.exchangeData();
@@ -720,6 +787,6 @@ private:
     MotorData motor;
     ros::NodeHandlePtr nh;
     ros::Publisher motor_status_pub;
-    ros::Subscriber motor_cmd_sub;
+    ros::Subscriber motor_cmd_pos_sub, motor_cmd_vel_sub, motor_cmd_force_sub;
     boost::shared_ptr<ros::AsyncSpinner> spinner;
 };

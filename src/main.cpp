@@ -40,6 +40,9 @@ int main(int argc, char* argv[]){
             case 'r':
                 ncurse.remoteAndroidControl();
                 break;
+            case 'p':
+                ncurse.publishMotorInfo();
+                break;
         }
 		ncurse.querySensoryData();
     }while( cmd != '9');
