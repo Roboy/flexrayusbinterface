@@ -1,4 +1,4 @@
-#include "flexrayusbinterface/ncurses_flexray.hpp"
+#include "ncurses_flexray.hpp"
 #include <cstdlib>
 
 int main(int argc, char *argv[]) {
