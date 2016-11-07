@@ -1,51 +1,67 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-project ( flexrayusbinterface )
+PROJECT ( flexrayusbinterface )
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "--std=gnu++11 -g")
-#==============================================================================
-# Dependencies
-#==============================================================================
-#==============================================================================
-# Dependencies
-#==============================================================================
-find_package(catkin REQUIRED COMPONENTS roscpp )
-catkin_package(CATKIN_DEPENDS message_runtime)
+SET(CMAKE_BUILD_TYPE Debug)
 
-# Boost
-find_package ( Boost COMPONENTS system thread REQUIRED  )
-include_directories( ${Boost_INCLUDE_DIR} )
+SET(CMAKE_CXX_FLAGS "--std=gnu++11")
 
-# pthread
-find_package (Threads)
+FIND_PACKAGE(catkin REQUIRED COMPONENTS
+    common_utilities
+    rosconsole
+    roscpp)
 
-# libftd2xx
-find_package(libftd2xx)
-
-# ncurses
-find_package(PkgConfig)
+FIND_PACKAGE (PkgConfig REQUIRED)
 pkg_check_modules(ncurses REQUIRED ncurses)
 
-include_directories( ${catkin_INCLUDE_DIRS}
-        include/
-        ../common_utilities/include
-        )
-#==============================================================================
-# Application
-#==============================================================================
-add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/main.cpp)
-add_dependencies(flexrayusbinterface common_utilities_gencpp)
-target_link_libraries(flexrayusbinterface ${Boost_LIBRARIES} ${libftd2xx_LIBRARY} ${catkin_LIBRARIES}
-        ${ncurses_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -ldl )
-#==============================================================================
-# Installation
-#==============================================================================
-install(TARGETS
-        flexrayusbinterface
-	    RUNTIME DESTINATION bin
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        )
+# Boost
+FIND_PACKAGE ( Boost COMPONENTS system thread REQUIRED  )
 
+find_package(libFTD2XX)
+
+
+
+INCLUDE_DIRECTORIES(    include
+                        ${Boost_INCLUDE_DIR}
+                        ${catkin_INCLUDE_DIRS}
+                        ${ncurses_INCLUDE_DIRS}
+                        )
+
+
+MESSAGE(STATUS ${CMAKE_SOURCE_DIR})
+
+
+catkin_package(DEPENDS Boost ncurses
+               INCLUDE_DIRS include
+               CATKIN_DEPENDS common_utilities roscpp rosconsole
+               LIBRARIES libflexrayusbinterface
+             DEPENDS libftd2xx)
+
+ADD_EXECUTABLE( flexrayusbinterface
+                        src/FlexRayHardwareInterface.cpp src/main.cpp)
+
+TARGET_LINK_LIBRARIES( flexrayusbinterface
+                        ${Boost_LIBRARIES}
+                        -lftd2xx
+                        -lpthread
+                        ${catkin_LIBRARIES}
+                        ${ncurses_LIBRARIES}
+                        ${libftd2xx_LIBRARY}
+
+)
+
+ADD_LIBRARY ( libflexrayusbinterface ${incs}
+                        src/FlexRayHardwareInterface.cpp)
+
+TARGET_LINK_LIBRARIES( libflexrayusbinterface
+                        ${Boost_LIBRARIES}
+                        -lftd2xx
+                        -lpthread
+                        ${ROSCONSOLE_LIBRARIES}
+                        ${catkin_LIBRARIES}
+                        ${ncurses_LIBRARIES}
+                          ${libftd2xx_LIBRARY}
+)
