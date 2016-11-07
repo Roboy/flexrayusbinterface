@@ -1,5 +1,5 @@
-#include "FlexRayHardwareInterface.hpp"
-#include "CommunicationData.h"
+#include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
+#include "flexrayusbinterface/CommunicationData.h"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface() {
   motorState.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION, 1);
