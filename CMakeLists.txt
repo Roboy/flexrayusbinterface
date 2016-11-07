@@ -52,6 +52,7 @@ TARGET_LINK_LIBRARIES( flexrayusbinterface
                         ${libftd2xx_LIBRARY}
 
 )
+add_dependencies(flexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
 
 ADD_LIBRARY ( libflexrayusbinterface ${incs}
                         src/FlexRayHardwareInterface.cpp)
@@ -65,3 +66,4 @@ TARGET_LINK_LIBRARIES( libflexrayusbinterface
                         ${ncurses_LIBRARIES}
                           ${libftd2xx_LIBRARY}
 )
+add_dependencies(libflexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
