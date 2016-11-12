@@ -36,6 +36,8 @@ catkin_package(DEPENDS Boost ncurses
         LIBRARIES libflexrayusbinterface
         DEPENDS libftd2xx)
 
+message(STATUS "include dirs: ${catkin_INCLUDE_DIRS}")
+
 INCLUDE_DIRECTORIES(    include
                         ${libftd2xx_INCLUDE_DIRS}
                         ${Boost_INCLUDE_DIR}
