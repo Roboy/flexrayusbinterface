@@ -56,6 +56,7 @@ target_link_libraries( flexrayusbinterface
                         ${CMAKE_THREAD_LIBS_INIT}
                         ${catkin_LIBRARIES}
                         ${ncurses_LIBRARIES}
+                        -ldl
 )
 
 
@@ -68,6 +69,7 @@ target_link_libraries( libflexrayusbinterface
                         ${ROSCONSOLE_LIBRARIES}
                         ${catkin_LIBRARIES}
                         ${ncurses_LIBRARIES}
+                        -ldl
 )
 #==============================================================================
 # Installation
