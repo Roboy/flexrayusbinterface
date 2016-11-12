@@ -1,5 +1,4 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
-#include "flexrayusbinterface/CommunicationData.h"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface() {
   motorState.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION, 1);
@@ -13,12 +12,6 @@ FlexRayHardwareInterface::FlexRayHardwareInterface() {
   }
 #else
   ROS_DEBUG("No Hardware mode enabled");
-  GanglionData[0].muscleState[0].actuatorPos = 100;
-  GanglionData[0].muscleState[1].actuatorPos = 101;
-  GanglionData[0].muscleState[2].actuatorPos = 102;
-  GanglionData[0].muscleState[3].actuatorPos = 103;
-  virtualRoboy = new VirtualRoboy(&GanglionData[0], &commandframe0[0],
-                                  &commandframe1[0], &controlparams);
   activeGanglionsMask = 0b111111;
   numberOfGanglionsConnected = 6;
 #endif
@@ -26,9 +19,6 @@ FlexRayHardwareInterface::FlexRayHardwareInterface() {
 };
 
 FlexRayHardwareInterface::~FlexRayHardwareInterface() {
-#ifndef HARDWARE
-  delete virtualRoboy;
-#endif
 }
 
 bool FlexRayHardwareInterface::connect() {
@@ -73,13 +63,7 @@ void FlexRayHardwareInterface::initializeMotors() {
   controlparams.tag = 0;              // sint32
   controlparams.outputPosMax = 1000;  // sint32
   controlparams.outputNegMax = -1000; // sint32
-#ifdef HARDWARE
-  controlparams.timePeriod =
-      100; // float32      //in us // set time period to avoid error case
-#else
-  controlparams.timePeriod =
-      1000000; // float32      //in us // set time period to avoid error case
-#endif
+  controlparams.timePeriod = 100; // float32      //in us set time period to avoid error case
 
   controlparams.radPerEncoderCount =
       2 * 3.14159265359 / (2000.0 * 53.0);          // float32
@@ -594,7 +578,7 @@ void FlexRayHardwareInterface::exchangeData() {
                     1]; // active ganglions, generated from usbFlexRay interface
   }
 #else
-  ROS_DEBUG("NO HARDWARE, using virtual roboy");
+  ROS_DEBUG("NO HARDWARE");
 #endif
   updateMotorState(); // ogni volta che scrivo e leggo faccio un update del
                       // motor state (cambia da 0 a 1, da 0 a 1)

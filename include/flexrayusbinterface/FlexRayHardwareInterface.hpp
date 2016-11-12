@@ -9,13 +9,12 @@
 
 //! comment if no hardware available
 #define HARDWARE
-#include "VirtualRoboy.hpp"
 
 #include "ftd2xx.h"
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
-#include "CommunicationData.h"
+#include "flexrayusbinterface/CommunicationData.h"
 #include <ros/console.h>
 #include <utility>
 #include "timer.hpp"
@@ -202,8 +201,6 @@ public:
     //! vector containing the controller type for each motor
     std::vector<int8_t> motorControllerType;
 private:
-    //! virtual roboy for simulation
-    VirtualRoboy* virtualRoboy;
     //! timer
     Timer timer;
     //! Handle of the FTDI device
