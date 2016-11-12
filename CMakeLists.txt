@@ -30,22 +30,18 @@ find_package(libftd2xx REQUIRED)
 # pthread
 find_package (Threads)
 
+catkin_package(DEPENDS Boost ncurses
+        INCLUDE_DIRS include
+        CATKIN_DEPENDS common_utilities roscpp rosconsole
+        LIBRARIES libflexrayusbinterface
+        DEPENDS libftd2xx)
+
 INCLUDE_DIRECTORIES(    include
                         ${libftd2xx_INCLUDE_DIRS}
                         ${Boost_INCLUDE_DIR}
                         ${catkin_INCLUDE_DIRS}
                         ${ncurses_INCLUDE_DIRS}
                         )
-
-
-MESSAGE(STATUS ${CMAKE_SOURCE_DIR})
-
-
-catkin_package(DEPENDS Boost ncurses
-               INCLUDE_DIRS include
-               CATKIN_DEPENDS common_utilities roscpp rosconsole
-               LIBRARIES libflexrayusbinterface
-             DEPENDS libftd2xx)
 
 #==============================================================================
 # Application
