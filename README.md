@@ -10,6 +10,7 @@ cd path/to/flexrayusbinterface
 sudo dpkg -i lib/libftd2xx_1.1.12_amd64.deb
 ```
 ### install libftd2xx v1.3.6 (on fedora/arch linux) via:###
+The final command in this block will generate a number of warnings or "errors". That is totally normal - works anyway.
 ```
 #!bash
 cd path/to/flexrayusbinterface/lib
