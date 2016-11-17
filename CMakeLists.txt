@@ -48,7 +48,7 @@ INCLUDE_DIRECTORIES(    include
 #==============================================================================
 # Application
 #==============================================================================
-add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/main.cpp)
+add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/main.cpp)
 add_dependencies(flexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
 target_link_libraries( flexrayusbinterface
                         ${Boost_LIBRARIES}
@@ -60,7 +60,7 @@ target_link_libraries( flexrayusbinterface
 )
 
 
-add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp)
+add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp)
 add_dependencies(libflexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
 target_link_libraries( libflexrayusbinterface
                         ${Boost_LIBRARIES}
