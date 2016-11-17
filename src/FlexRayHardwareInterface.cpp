@@ -25,8 +25,6 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
   }
 #else
   ROS_DEBUG("No Hardware mode enabled");
-  activeGanglionsMask = 0b111111;
-  numberOfGanglionsConnected = 6;
 #endif
   initializeMotors();
 };
@@ -100,17 +98,15 @@ void FlexRayHardwareInterface::initializeMotors()
       commandframe1[i].sp[j] = 0;
     }
   }
-  updateCommandFrame();
   initForceControl();
 
+  uint32_t activeGanglionsMask = exchangeData();
 #ifdef HARDWARE
-  checkNumberOfConnectedGanglions();
   updateMotorState();
 #else
   ROS_DEBUG("NO HARDWARE MODE");
-  numberOfGanglionsConnected = 6;
 #endif
-  ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", numberOfGanglionsConnected,
+  ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", NumberOfSetBits(activeGanglionsMask),
            activeGanglionsMask);
 };
 
@@ -129,10 +125,8 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     commandframe0[ganglion_id].sp[motor_id] = vel;
   else
     commandframe1[ganglion_id - 3].sp[motor_id] = vel;
-  updateCommandFrame();
   exchangeData();
   usleep(300000);
-  updateCommandFrame();
   exchangeData();
   tendonDisplacement_t[0] =
       GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
@@ -145,10 +139,8 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
       commandframe0[ganglion_id].sp[motor_id] = vel;
     else
       commandframe1[ganglion_id - 3].sp[motor_id] = vel;
-    updateCommandFrame();
     exchangeData();
     usleep(500000);
-    updateCommandFrame();
     exchangeData();
     tendonDisplacement_t[i] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
     ROS_INFO("Displacement_t%d %.5f ", i, tendonDisplacement_t[i]);
@@ -171,10 +163,8 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
       commandframe0[ganglion_id].sp[motor_id] = vel;
     else
       commandframe1[ganglion_id - 3].sp[motor_id] = vel;
-    updateCommandFrame();
     exchangeData();
     usleep(300000);
-    updateCommandFrame();
     exchangeData();
     tendonDisplacement_t2[t + 1] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
     t++;
@@ -208,7 +198,6 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
       commandframe0[ganglion_id].sp[motor_id] = vel;
     else
       commandframe1[ganglion_id - 3].sp[motor_id] = vel;
-    updateCommandFrame();
     exchangeData();
     sleep(2);
 
@@ -216,13 +205,11 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     commandframe0[0].OperationMode[0] = Initialise;
     ROS_INFO("Tag = %d ", controlparams.tag);
 
-    updateCommandFrame();
     exchangeData();
     updateMotorState();
     controlparams.tag = 0;
     commandframe0[0].OperationMode[0] = Initialise;
     ROS_INFO("Tag = %d ", controlparams.tag);
-    updateCommandFrame();
     exchangeData();
     updateMotorState();
 
@@ -270,7 +257,6 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
       motorControllerType[(i + NUMBER_OF_GANGLIONS / 2) * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Position;
     }
   }
-  updateCommandFrame();
   exchangeData();
   for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
@@ -284,7 +270,6 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
       commandframe1[i].sp[motor] = pos * controlparams.radPerEncoderCount;
     }
   }
-  updateCommandFrame();
   exchangeData();
 }
 
@@ -317,7 +302,6 @@ void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t m
     commandframe1[ganglion - 3].OperationMode[motor] = Initialise;
   }
   motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Position;
-  updateCommandFrame();
   exchangeData();
   float pos = GanglionData[ganglion].muscleState[motor].actuatorPos * controlparams.radPerEncoderCount;
   if (ganglion < 3)
@@ -330,7 +314,6 @@ void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t m
     commandframe1[ganglion - 3].OperationMode[motor] = Run;
     commandframe1[ganglion - 3].sp[motor] = pos;
   }
-  updateCommandFrame();
   exchangeData();
 }
 
@@ -363,7 +346,6 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
       motorControllerType[(i + NUMBER_OF_GANGLIONS / 2) * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Velocity;
     }
   }
-  updateCommandFrame();
   exchangeData();
   for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
@@ -375,7 +357,6 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
       commandframe1[i].sp[motor] = 0;
     }
   }
-  updateCommandFrame();
   exchangeData();
 }
 
@@ -408,7 +389,6 @@ void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t m
     commandframe1[ganglion].OperationMode[motor] = Initialise;
   }
   motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Velocity;
-  updateCommandFrame();
   exchangeData();
   if (ganglion < 3)
   {
@@ -420,7 +400,6 @@ void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t m
     commandframe1[ganglion - 3].OperationMode[motor] = Run;
     commandframe1[ganglion - 3].sp[motor] = 0;
   }
-  updateCommandFrame();
   exchangeData();
 }
 
@@ -485,7 +464,6 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
       motorControllerType[(i + NUMBER_OF_GANGLIONS / 2) * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Force;
     }
   }
-  updateCommandFrame();
   exchangeData();
   for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
@@ -497,7 +475,6 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
       commandframe1[i].sp[motor] = 0;
     }
   }
-  updateCommandFrame();
   exchangeData();
 }
 
@@ -562,7 +539,6 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
   }
   motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Force;
 
-  updateCommandFrame();
   exchangeData();
   if (ganglion < 3)
   {
@@ -574,12 +550,17 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
     commandframe1[ganglion - 3].OperationMode[motor] = Run;
     commandframe1[ganglion - 3].sp[motor] = 0;
   }
-  updateCommandFrame();
   exchangeData();
 }
 
-void FlexRayHardwareInterface::exchangeData()
+uint32_t FlexRayHardwareInterface::exchangeData()
 {
+  uint32_t activeGanglionsMask = 0;
+  WORD dataset[DATASETSIZE];
+  memcpy((void *)&dataset[0], commandframe0, sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME);
+  memcpy((void *)&dataset[sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME / 2], commandframe1,
+         sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME);
+  memcpy((void *)&dataset[72], &controlparams, sizeof(control_Parameters_t));
 #ifdef HARDWARE
   FT_STATUS ftStatus;
   ftStatus = SPI_WriteBuffer(m_ftHandle, &dataset[0], DATASETSIZE);  // send data
@@ -606,6 +587,7 @@ void FlexRayHardwareInterface::exchangeData()
       ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
     }
     ROS_DEBUG("reading data");
+    WORD InputBuffer[DATASETSIZE];
     FT_Read(m_ftHandle, &InputBuffer[0], dwNumInputBuffer, &dwNumBytesRead);  // read bytes into word locations
 
     // now make a copy of relevant signal
@@ -616,38 +598,16 @@ void FlexRayHardwareInterface::exchangeData()
   }
 #else
   ROS_DEBUG("NO HARDWARE");
+  activeGanglionsMask = 0b111111;
 #endif
   updateMotorState();  // ogni volta che scrivo e leggo faccio un update del
                        // motor state (cambia da 0 a 1, da 0 a 1)
+  return activeGanglionsMask;
 }
 
-void FlexRayHardwareInterface::updateCommandFrame()
+uint32_t FlexRayHardwareInterface::getNumberOfConnectedGanglions()
 {
-  memcpy((void *)&dataset[0], commandframe0, sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME);
-  memcpy((void *)&dataset[sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME / 2], commandframe1,
-         sizeof(comsCommandFrame) * GANGLIONS_PER_CONTROL_FRAME);
-  memcpy((void *)&dataset[72], &controlparams, sizeof(control_Parameters_t));
-}
-
-/**
- * This function counts the number of bits set in a bitmask
- * @param i bitmask
- * @return number of ones set
- */
-static uint32_t NumberOfSetBits(uint32_t i)
-{
-  i = i - ((i >> 1) & 0x55555555);
-  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-}
-
-uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions()
-{
-  exchangeData();
-#ifdef HARDWARE
-  numberOfGanglionsConnected = NumberOfSetBits(activeGanglionsMask);
-#endif
-  return numberOfGanglionsConnected;
+  return NumberOfSetBits(exchangeData());
 }
 
 void FlexRayHardwareInterface::updateMotorState()
@@ -680,12 +640,11 @@ double FlexRayHardwareInterface::measureConnectionTime()
   timer.start();
   for (uint32_t i = 0; i < 1000; i++)
   {
-    updateCommandFrame();
     exchangeData();
   }
   double elapsedTime = timer.stop() / 1000.0;
   file << "Measured runtime for 1000 updateCommandFrame() + exchangeData() "
-          "calls\n";
+      "calls\n";
   file << "average time: " << elapsedTime << " seconds" << std::endl;
   file.close();
   return elapsedTime;
@@ -727,7 +686,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
         commandframe1[ganglion - 3].sp[motor] = 6.0f;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // samplingTime milli -> seconds
@@ -820,7 +778,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
         commandframe1[ganglion - 3].sp[motor] = 0.0f;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // restore controller types
@@ -857,7 +814,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
       i++;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // return average sampling time in milliseconds
@@ -899,7 +855,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
         commandframe1[ganglion - 3].sp[motor] = 6.0f;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // samplingTime milli -> seconds
@@ -970,7 +925,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
         commandframe1[ganglion - 3].sp[motor] = 0.0f;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // restore controller types
@@ -1010,7 +964,6 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
       i++;
     }
   }
-  updateCommandFrame();
   exchangeData();
 
   // return average sampling time in milliseconds

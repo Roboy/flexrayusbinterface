@@ -8,6 +8,18 @@
 #include "flexrayusbinterface/CommunicationData.h"
 #include "flexrayusbinterface/Spi.hpp"
 
+/**
+ * This function counts the number of bits set in a bitmask
+ * @param i bitmask
+ * @return number of ones set
+ */
+inline uint32_t NumberOfSetBits(uint32_t i)
+{
+  i = i - ((i >> 1) & 0x55555555);
+  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
 class FlexRayHardwareInterface
 {
 public:
@@ -69,22 +81,12 @@ public:
                         float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
                         float IntegralPosMax = 0.0, float spPosMin = -100.0, float spPosMax = 100.0,
                         float torqueConstant = 1.0, SpringElasticity springType = SpringElasticity::Soft);
+
   /**
    * This function exchanges data between interface and motors
+   * @return the mask of connected ganglia
    */
-  void exchangeData();
-
-  /**
-   * This function updates the commandframes
-   */
-  void updateCommandFrame();
-
-
-  /**
-   * Checks the number of connected ganglia
-   * @return number of connected ganglia
-   */
-  uint32_t checkNumberOfConnectedGanglions();
+  uint32_t exchangeData();
 
   /**
    * Checks which motors are ready and updates motorState
@@ -120,7 +122,7 @@ public:
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
   //! number of connected ganglions
-  uint32_t numberOfGanglionsConnected;
+  uint32_t getNumberOfConnectedGanglions();
   //! command frames containing motor control parameters for 3 ganglia
   comsCommandFrame commandframe0[3];
   //! command frames containing motor control parameters for 3 ganglia
@@ -139,8 +141,6 @@ private:
    */
   void initializeMotors();
 
-  //! bitmask with active ganglions
-  unsigned short activeGanglionsMask;
   //! vector containing a status for each motor
   std::vector<int8_t> motorState;
   //! vector containing the controller type for each motor
@@ -152,8 +152,4 @@ private:
   uint32_t m_numberOfConnectedDevices;
   //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
   uint32_t m_clockDivisor = 2;
-  //! this will be send via flexray
-  WORD dataset[DATASETSIZE];
-  //! this will contain data coming from flexray
-  WORD InputBuffer[DATASETSIZE];
 };

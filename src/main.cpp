@@ -208,11 +208,9 @@ public:
             flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
         else
             flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-        flexray.updateCommandFrame();
         flexray.exchangeData();
         querySensoryData();
         usleep(300000);
-        flexray.updateCommandFrame();
         flexray.exchangeData();
         tendonDisplacement_t[0] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement /
                                   32768.0f; //tendon displacemnte iniziale
@@ -226,11 +224,9 @@ public:
                 flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
             else
                 flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             querySensoryData();
             usleep(500000);
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             tendonDisplacement_t[i] =
                     flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
@@ -257,11 +253,9 @@ public:
                 flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
             else
                 flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             querySensoryData();
             usleep(300000);
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             tendonDisplacement_t2[t + 1] =
                     flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
@@ -293,7 +287,6 @@ public:
                 flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
             else
                 flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             querySensoryData();
             sleep(2);
@@ -303,14 +296,12 @@ public:
             flexray.controlparams.tag = 1;
             flexray.commandframe0[0].OperationMode[0] = Initialise;
             refresh();
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             flexray.updateMotorState();
             querySensoryData();
             flexray.controlparams.tag = 0;
             flexray.commandframe0[0].OperationMode[0] = Initialise;
             refresh();
-            flexray.updateCommandFrame();
             flexray.exchangeData();
             flexray.updateMotorState();
             querySensoryData();
@@ -346,11 +337,9 @@ public:
                     flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
                 else
                     flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-                flexray.updateCommandFrame();
                 flexray.exchangeData();
                 querySensoryData();
                 usleep(300000);
-                flexray.updateCommandFrame();
                 flexray.exchangeData();
                 tendonDisplacement_t[0] = flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement /
                                           32768.0f; //tendon displacemnte iniziale
@@ -365,11 +354,9 @@ public:
                         flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
                     else
                         flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     querySensoryData();
                     usleep(500000);
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     tendonDisplacement_t[i] =
                             flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
@@ -396,11 +383,9 @@ public:
                         flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
                     else
                         flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     querySensoryData();
                     usleep(300000);
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     tendonDisplacement_t2[t + 1] =
                             flexray.GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
@@ -432,7 +417,6 @@ public:
                         flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
                     else
                         flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     querySensoryData();
                     sleep(2);
@@ -441,14 +425,12 @@ public:
                     flexray.controlparams.tag = 1;
                     flexray.commandframe0[0].OperationMode[0] = Initialise;
                     refresh();
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     flexray.updateMotorState();
                     querySensoryData();
                     flexray.controlparams.tag = 0;
                     flexray.commandframe0[0].OperationMode[0] = Initialise;
                     refresh();
-                    flexray.updateCommandFrame();
                     flexray.exchangeData();
                     flexray.updateMotorState();
                     querySensoryData();
@@ -479,7 +461,6 @@ public:
             flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
         else
             flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-        flexray.updateCommandFrame();
         flexray.exchangeData();
         processing(runningstring, inputstring, quitstring);
         print(4, 0, cols, " ");
@@ -504,7 +485,6 @@ public:
             flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
         else
             flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-        flexray.updateCommandFrame();
         flexray.exchangeData();
         processing(runningstring, inputstring, quitstring);
         print(4, 0, cols, " ");
@@ -527,7 +507,6 @@ public:
             flexray.commandframe0[ganglion_id].sp[motor_id] = pos;
         else
             flexray.commandframe1[ganglion_id - 3].sp[motor_id] = pos;
-        flexray.updateCommandFrame();
         flexray.exchangeData();
         processing(runningstring, inputstring, quitstring);
         print(4, 0, cols, " ");
@@ -638,7 +617,6 @@ public:
                     flexray.commandframe1[ganglion - 3].sp[motor] = pos;
             }
         }
-        flexray.updateCommandFrame();
         processing(runningstring, inputstring, quitstring);
         // set back to zero force
         flexray.initForceControl();
@@ -705,7 +683,6 @@ public:
                     flexray.commandframe1[ganglion - 3].sp[motor] = 6.0f;
             }
         }
-        flexray.updateCommandFrame();
         do {
             flexray.exchangeData();
             i=0;
@@ -728,10 +705,12 @@ public:
     }
 
     void processPositionCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        /*
         if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
             printMessage(4, 0, errormessage, RED);
             return;
         }
+        */
         uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
         uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
         flexray.initPositionControl(motor, ganglion);
@@ -740,15 +719,16 @@ public:
         else
             flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
         printMessage(4, 0, receivedupdatestring, GREEN);
-        flexray.updateCommandFrame();
         flexray.exchangeData();
     }
 
     void processVelocityCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        /*
         if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
             printMessage(4, 0, errormessage, RED);
             return;
         }
+        */
         uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
         uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
         flexray.initVelocityControl(motor, ganglion);
@@ -757,15 +737,16 @@ public:
         else
             flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
         printMessage(4, 0, receivedupdatestring, GREEN);
-        flexray.updateCommandFrame();
         flexray.exchangeData();
     }
 
     void processForceCommand(const common_utilities::MotorCommand::ConstPtr &msg) {
+        /*
         if(msg->id/NUMBER_OF_JOINTS_PER_GANGLION > flexray.numberOfGanglionsConnected) {
             printMessage(4, 0, errormessage, RED);
             return;
         }
+        */
         uint ganglion = msg->id/NUMBER_OF_JOINTS_PER_GANGLION;
         uint motor = msg->id%NUMBER_OF_JOINTS_PER_GANGLION;
         flexray.initForceControl(motor, ganglion);
@@ -774,7 +755,6 @@ public:
         else
             flexray.commandframe1[ganglion-3].sp[motor] = msg->setpoint;
         printMessage(4, 0, receivedupdatestring, GREEN);
-        flexray.updateCommandFrame();
         flexray.exchangeData();
     }
 
