@@ -301,8 +301,8 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
-                                                   float forwardGain, float deadBand, float integral,
+void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
+                                                   float Dgain, float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
 {
@@ -392,8 +392,8 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
-                                                   float forwardGain, float deadBand, float integral,
+void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
+                                                   float Dgain, float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
 {
@@ -514,10 +514,10 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
-                                                float forwardGain, float deadBand, float integral, float IntegralPosMin,
-                                                float IntegralPosMax, float spPosMin, float spPosMax,
-                                                float torqueConstant, char springType)
+void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
+                                                float Dgain, float forwardGain, float deadBand, float integral,
+                                                float IntegralPosMin, float IntegralPosMax, float spPosMin,
+                                                float spPosMax, float torqueConstant, char springType)
 {
   controlparams.spPosMax = spPosMax;  // float32
   controlparams.spNegMax = spPosMin;  // float32
@@ -594,6 +594,7 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
 void FlexRayHardwareInterface::exchangeData()
 {
 #ifdef HARDWARE
+  FT_STATUS ftStatus;
   ftStatus = SPI_WriteBuffer(m_ftHandle, &dataset[0], DATASETSIZE);  // send data
   if (ftStatus != FT_OK)
   {
@@ -1077,6 +1078,7 @@ bool FlexRayHardwareInterface::CheckDeviceConnected(DWORD *NumDevs)
   // -----------------------------------------------------------
   ROS_DEBUG("Checking for FTDI devices...");
 
+  FT_STATUS ftStatus;
   ftStatus = FT_CreateDeviceInfoList(NumDevs);  // Get the number of FTDI devices
   if (ftStatus != FT_OK)                        // Did the command execute OK?
   {
@@ -1102,6 +1104,7 @@ bool FlexRayHardwareInterface::GetDeviceInfo(DWORD *NumDevs)
   // If yes then print details of devices
   // ------------------------------------------------------------
   devInfo = (FT_DEVICE_LIST_INFO_NODE *)malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * (*NumDevs));
+  FT_STATUS ftStatus;
   ftStatus = FT_GetDeviceInfoList(devInfo, NumDevs);
   if (ftStatus == FT_OK)
   {
@@ -1134,6 +1137,7 @@ bool FlexRayHardwareInterface::OpenPortAndConfigureMPSSE(FT_HANDLE *ftHandle, DW
   // -----------------------------------------------------------
   // Open the port on first device located
   // -----------------------------------------------------------
+  FT_STATUS ftStatus;
   ftStatus = FT_Open(0, ftHandle);
   if (ftStatus != FT_OK)
   {
@@ -1247,7 +1251,8 @@ bool FlexRayHardwareInterface::TestMPSSE(FT_HANDLE *ftHandle)
 
   /* Synchronisation and Bad communication detection */
   // Enable internal loop-back
-  byOutputBuffer[dwNumBytesToSend++] = 0x84;                                          // Enable loopback
+  byOutputBuffer[dwNumBytesToSend++] = 0x84;  // Enable loopback
+  FT_STATUS ftStatus;
   ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
   dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
 
@@ -1331,6 +1336,7 @@ bool FlexRayHardwareInterface::ConfigureSPI(FT_HANDLE *ftHandle, DWORD dwClockDi
   byOutputBuffer[dwNumBytesToSend++] = '\x8A';  // Ensure disable clock divide by 5 for 60Mhz master clock
   byOutputBuffer[dwNumBytesToSend++] = '\x97';  // Ensure turn off adaptive clocking
   byOutputBuffer[dwNumBytesToSend++] = '\x8D';  // disable 3 phase data clock
+  FT_STATUS ftStatus;
   ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
   if (ftStatus != FT_OK)
   {
@@ -1377,6 +1383,7 @@ BOOL FlexRayHardwareInterface::SPI_WriteByte(FT_HANDLE ftHandle, WORD bdata)
   OutputBuffer[dwNumBytesToSend++] = bdata >> 8;                       // output high byte
   OutputBuffer[dwNumBytesToSend++] = bdata & 0xff;                     // output low byte
   dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
+  FT_STATUS ftStatus;
   ftStatus = FT_Write(ftHandle, OutputBuffer, dwNumBytesToSend, &dwNumBytesSent);
   // send out MPSSE command to MPSSE engine
   ROS_DEBUG_STREAM(dwNumBytesSent << " bytes sent through SPI");
@@ -1404,9 +1411,8 @@ FT_STATUS FlexRayHardwareInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD *bu
     OutputBuffer[dwNumBytesToSend++] = (BYTE)(bdata & 0xff);  // output low byte
     dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
   }
-// dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
-// printf("%i NumBytesToSend", sizeof(OutputBuffer));
 #ifdef HARDWARE
+  FT_STATUS ftStatus;
   do
   {
     ftStatus = FT_Write(ftHandle, OutputBuffer, dwNumBytesToSend,
@@ -1416,8 +1422,6 @@ FT_STATUS FlexRayHardwareInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD *bu
       getErrorMessage(ftStatus, errorMessage);
       ROS_ERROR_STREAM(" something wrong with FT_Write call, Error code " << errorMessage);
     }
-    // else
-    //  std::cout << dwNumBytesSent <<" bytes sent through SPI" << std::endl;
   } while (ftStatus != FT_OK);
 #else
   ROS_DEBUG("No Hardware mode enabled, not trying to send anything");
@@ -1426,8 +1430,7 @@ FT_STATUS FlexRayHardwareInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD *bu
   return ftStatus;
 }
 
-
-void FlexRayHardwareInterface::getErrorMessage(FT_STATUS status, char* msg)
+void FlexRayHardwareInterface::getErrorMessage(FT_STATUS status, char *msg)
 {
-    snprintf(msg, 256, "%s", errorMessages[status].c_str());
+  snprintf(msg, 256, "%s", errorMessages[status].c_str());
 }

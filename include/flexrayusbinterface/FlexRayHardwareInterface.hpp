@@ -11,7 +11,6 @@
 #include "flexrayusbinterface/CommunicationData.h"
 #include "ftd2xx.h"
 
-
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE
  * \brief number of words to exchange per SPI frame (taken from CommunicationData.h)
@@ -59,8 +58,8 @@ public:
   /**
    * This function initializes position control for one specific motor in a ganglion.
    */
-  void initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain = 1000.0, float IGain = 0.0, float Dgain = 0.0,
-                           float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0,
+  void initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain = 1000.0, float IGain = 0.0,
+                           float Dgain = 0.0, float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0,
                            float IntegralPosMin = 0.0, float IntegralPosMax = 0.0, float spPosMin = -100.0,
                            float spPosMax = 100.0);
   /**
@@ -149,8 +148,6 @@ public:
 
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
-  //! bitmask with active ganglions
-  unsigned short activeGanglionsMask;
   //! number of connected ganglions
   uint32_t numberOfGanglionsConnected;
   //! command frames containing motor control parameters for 3 ganglia
@@ -159,14 +156,15 @@ public:
   comsCommandFrame commandframe1[3];
   //! control parameters for motor
   control_Parameters_t controlparams;
-  //! Result of each D2XX call
-  FT_STATUS ftStatus;
+
+private:
+  //! bitmask with active ganglions
+  unsigned short activeGanglionsMask;
   //! vector containing a status for each motor
   std::vector<int8_t> motorState;
   //! vector containing the controller type for each motor
   std::vector<int8_t> motorControllerType;
 
-private:
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
   //! number of devices connected
