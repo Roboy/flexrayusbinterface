@@ -3,16 +3,14 @@
 //! comment if no hardware available
 #define HARDWARE
 
+// std
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "flexrayusbinterface/CommunicationData.h"
 #include "ftd2xx.h"
-// std
-#include <string.h>
-#include <unistd.h>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <utility>
-#include <vector>
+
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE
@@ -49,7 +47,7 @@ public:
   * This function resets the sensor displacement of one motor
   */
 
-  void relaxSpring(uint ganglion_id, uint motor_id, int controlmode);
+  void relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode);
 
   /**
   *This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
@@ -71,7 +69,7 @@ public:
   /**
    * This function initializes position control for one specific motor in a ganglion.
    */
-  void initPositionControl(uint ganglion, uint motor, float Pgain = 1000.0, float IGain = 0.0, float Dgain = 0.0,
+  void initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain = 1000.0, float IGain = 0.0, float Dgain = 0.0,
                            float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0,
                            float IntegralPosMin = 0.0, float IntegralPosMax = 0.0, float spPosMin = -100.0,
                            float spPosMax = 100.0);
@@ -95,7 +93,7 @@ public:
   /**
    * This function initializes velocity control for one specific motor in a ganglion.
    */
-  void initVelocityControl(uint ganglion, uint motor, float Pgain = 200.0, float IGain = 0.0, float Dgain = 0.0,
+  void initVelocityControl(uint32_t ganglion, uint32_t motor, float Pgain = 200.0, float IGain = 0.0, float Dgain = 0.0,
                            float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0,
                            float IntegralPosMin = 0.0, float IntegralPosMax = 0.0, float spPosMin = -100.0,
                            float spPosMax = 100.0);
@@ -121,7 +119,7 @@ public:
   /**
    * This function initializes force control for one specific motor in a ganglion.
    */
-  void initForceControl(uint ganglion, uint motor, float Pgain = 70.0, float IGain = 0.0, float Dgain = 0.0,
+  void initForceControl(uint32_t ganglion, uint32_t motor, float Pgain = 70.0, float IGain = 0.0, float Dgain = 0.0,
                         float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
                         float IntegralPosMax = 0.0, float spPosMin = -100.0, float spPosMax = 100.0,
                         float torqueConstant = 1.0, char springType = SoftSpring);
@@ -202,9 +200,9 @@ private:
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
   //! number of devices connected
-  uint m_numberOfConnectedDevices;
+  uint32_t m_numberOfConnectedDevices;
   //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
-  uint m_clockDivisor = 2;
+  uint32_t m_clockDivisor = 2;
   //! this will be send via flexray
   WORD dataset[DATASETSIZE];
   //! this will contain data coming from flexray
@@ -287,10 +285,8 @@ private:
   const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BIT = '\x36';
   const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';
 
-  void getErrorMessage(FT_STATUS status, char* msg)
-  {
-    snprintf(msg, 256, "%s", errorMessages[status].c_str());
-  }
+  void getErrorMessage(FT_STATUS status, char* msg);
+
   char errorMessage[256];
   std::vector<std::string> errorMessages = { "FT_OK - it's all good",
                                              "FT_INVALID_HANDLE",

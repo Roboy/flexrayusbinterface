@@ -1,5 +1,12 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
+#include <string.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <utility>
+
 // ros
 #include <ros/console.h>
 
@@ -37,7 +44,7 @@ bool FlexRayHardwareInterface::connect()
       if (OpenPortAndConfigureMPSSE(&m_ftHandle, USBINSIZE, USBOUTSIZE) == true)
       {
         bool mpssetested = false;
-        uint tries = 0;
+        uint32_t tries = 0;
         do
         {
           mpssetested = TestMPSSE(&m_ftHandle);
@@ -85,9 +92,9 @@ void FlexRayHardwareInterface::initializeMotors()
   controlparams.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
   controlparams.params.pidParameters.lastError = 0;                        // float32
 
-  for (uint i = 0; i < 3; i++)
+  for (uint32_t i = 0; i < 3; i++)
   {
-    for (uint j = 0; j < 4; j++)
+    for (uint32_t j = 0; j < 4; j++)
     {
       commandframe0[i].sp[j] = 0;
       commandframe1[i].sp[j] = 0;
@@ -107,12 +114,12 @@ void FlexRayHardwareInterface::initializeMotors()
            activeGanglionsMask);
 };
 
-void FlexRayHardwareInterface::relaxSpring(uint ganglion_id, uint motor_id, int controlmode)
+void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode)
 {
   initVelocityControl(ganglion_id, motor_id);
-  uint count = 0;
+  uint32_t count = 0;
   float aux = 0;
-  uint p = 0;
+  uint32_t p = 0;
   float vel;
   float tendonDisplacement_t[3];
   float tendonDisplacement_t2[10000];
@@ -130,7 +137,7 @@ void FlexRayHardwareInterface::relaxSpring(uint ganglion_id, uint motor_id, int 
   tendonDisplacement_t[0] =
       GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
   ROS_INFO("Displacement_t0 %.5f     ", tendonDisplacement_t[0]);
-  uint i = 1;
+  uint32_t i = 1;
   for (i = 1; i < 3; i++)
   {
     vel = 3;
@@ -147,7 +154,7 @@ void FlexRayHardwareInterface::relaxSpring(uint ganglion_id, uint motor_id, int 
     ROS_INFO("Displacement_t%d %.5f ", i, tendonDisplacement_t[i]);
   }
 
-  uint t = 0;
+  uint32_t t = 0;
   tendonDisplacement_t2[0] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
   ROS_INFO("Displacement_t20 %.5f ", tendonDisplacement_t2[t]);
 
@@ -264,9 +271,9 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
   controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;  // float32
 
   // initialize PID controller in motordriver boards
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].ControlMode[motor] = Position;
       commandframe0[i].OperationMode[motor] = Initialise;
@@ -278,9 +285,9 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
   }
   updateCommandFrame();
   exchangeData();
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].OperationMode[motor] = Run;
       float pos = GanglionData[i].muscleState[motor].actuatorPos;
@@ -294,7 +301,7 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initPositionControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain,
+void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
                                                    float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
@@ -357,9 +364,9 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
   controlparams.params.pidParameters.IntegralNegMax = IntegralPosMin;  // float32
 
   // initialize PID controller in motordriver boards
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].ControlMode[motor] = Velocity;
       commandframe0[i].OperationMode[motor] = Initialise;
@@ -371,9 +378,9 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
   }
   updateCommandFrame();
   exchangeData();
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].OperationMode[motor] = Run;
       commandframe0[i].sp[motor] = 0;
@@ -385,7 +392,7 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initVelocityControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain,
+void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
                                                    float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
@@ -479,9 +486,9 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
   controlparams.torqueConstant = torqueConstant;  // float32
 
   // initialize PID controller in motordriver boards
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].ControlMode[motor] = Force;
       commandframe0[i].OperationMode[motor] = Initialise;
@@ -493,9 +500,9 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
   }
   updateCommandFrame();
   exchangeData();
-  for (uint i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
+  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS / 2; i++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       commandframe0[i].OperationMode[motor] = Run;
       commandframe0[i].sp[motor] = 0;
@@ -507,7 +514,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
   exchangeData();
 }
 
-void FlexRayHardwareInterface::initForceControl(uint ganglion, uint motor, float Pgain, float IGain, float Dgain,
+void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain, float Dgain,
                                                 float forwardGain, float deadBand, float integral, float IntegralPosMin,
                                                 float IntegralPosMax, float spPosMin, float spPosMax,
                                                 float torqueConstant, char springType)
@@ -657,10 +664,10 @@ uint32_t FlexRayHardwareInterface::checkNumberOfConnectedGanglions()
 
 void FlexRayHardwareInterface::updateMotorState()
 {
-  uint m = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  uint32_t m = 0;
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       int8_t status;
       if (GanglionData[ganglion].muscleState[motor].actuatorCurrent != 0)
@@ -683,7 +690,7 @@ double FlexRayHardwareInterface::measureConnectionTime()
   file.open("measureConnectionTime.log");
   Timer timer;
   timer.start();
-  for (uint i = 0; i < 1000; i++)
+  for (uint32_t i = 0; i < 1000; i++)
   {
     updateCommandFrame();
     exchangeData();
@@ -707,10 +714,10 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
   // make a backup of control modes so after recording they can be restored
   std::vector<int8_t> motorControllerType_backup = motorControllerType;
   std::vector<float> setPoints_backup(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION);
-  uint i = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  uint32_t i = 0;
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         setPoints_backup[i] = commandframe0[ganglion].sp[motor];
@@ -722,9 +729,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
 
   // force control is probably the most convenient mode for recording
   initForceControl();
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = 6.0f;
@@ -748,7 +755,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
   {
     dt = elapsedTime;
     exchangeData();
-    for (uint m = 0; m < idList.size(); m++)
+    for (uint32_t m = 0; m < idList.size(); m++)
     {
       if (motorState[idList[m]] == 1)
       {  // only record if motor is available
@@ -799,13 +806,13 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
     outfile << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
     outfile << "roboybehavior name=" << name << " behaviorid=\"200\"> " << std::endl;
     char motorname[10];
-    for (uint m = 0; m < idList.size(); m++)
+    for (uint32_t m = 0; m < idList.size(); m++)
     {
       sprintf(motorname, "motor%d", idList[m]);
       outfile << "<trajectory motorid=\"" << idList[m] << "\" controlmode=\"" << controlmode[m] << "\" samplerate=\""
               << samplingTime << "\">" << std::endl;
       outfile << "<waypointlist>" << std::endl;
-      for (uint i = 0; i < trajectories[idList[m]].size(); i++)
+      for (uint32_t i = 0; i < trajectories[idList[m]].size(); i++)
         outfile << trajectories[idList[m]][i] << " ";
       outfile << "</waypointlist>" << std::endl;
       outfile << "</trajectory>" << std::endl;
@@ -815,9 +822,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
   }
 
   // set force to zero
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = 0.0f;
@@ -829,10 +836,10 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
   exchangeData();
 
   // restore controller types
-  uint m = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  uint32_t m = 0;
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       switch (motorControllerType_backup[m])
       {
@@ -851,9 +858,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
   }
   // restore setpoints
   i = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = setPoints_backup[i];
@@ -879,10 +886,10 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
   // make a backup of control modes so after recording they can be restored
   std::vector<int8_t> motorControllerType_backup = motorControllerType;
   std::vector<float> setPoints_backup(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION);
-  uint i = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  uint32_t i = 0;
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         setPoints_backup[i] = commandframe0[ganglion].sp[motor];
@@ -894,9 +901,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
 
   // force control is probably the most convenient mode for recording
   initForceControl();
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = 6.0f;
@@ -922,7 +929,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
     if (*recording == PLAY_TRAJECTORY)
     {
       exchangeData();
-      for (uint m = 0; m < idList.size(); m++)
+      for (uint32_t m = 0; m < idList.size(); m++)
       {
         if (motorState[idList[m]] == 1)
         {  // only record if motor is available
@@ -965,9 +972,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
   }
 
   // set force to zero
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = 0.0f;
@@ -979,10 +986,10 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
   exchangeData();
 
   // restore controller types
-  uint m = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  uint32_t m = 0;
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
+    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
     {
       if (motorState[m] == 1)
       {
@@ -1004,9 +1011,9 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
   }
   // restore setpoints
   i = 0;
-  for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
+  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
-    for (uint motor = 0; motor < 4; motor++)
+    for (uint32_t motor = 0; motor < 4; motor++)
     {
       if (ganglion < 3)
         commandframe0[ganglion].sp[motor] = setPoints_backup[i];
@@ -1266,7 +1273,7 @@ bool FlexRayHardwareInterface::TestMPSSE(FT_HANDLE *ftHandle)
   ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the BAD command
   dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
 
-  uint counter = 0;
+  uint32_t counter = 0;
   do
   {
     ftStatus = FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead);  // Get the number of
@@ -1417,4 +1424,10 @@ FT_STATUS FlexRayHardwareInterface::SPI_WriteBuffer(FT_HANDLE ftHandle, WORD *bu
 #endif
   dwNumBytesToSend = 0;  // Clear output buffer
   return ftStatus;
+}
+
+
+void FlexRayHardwareInterface::getErrorMessage(FT_STATUS status, char* msg)
+{
+    snprintf(msg, 256, "%s", errorMessages[status].c_str());
 }
