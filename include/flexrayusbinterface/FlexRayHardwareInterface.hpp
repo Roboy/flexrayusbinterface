@@ -4,7 +4,6 @@
 #define HARDWARE
 
 #include "flexrayusbinterface/CommunicationData.h"
-#include "common_utilities/timer.hpp"
 #include "ftd2xx.h"
 // std
 #include <utility>
@@ -196,8 +195,6 @@ public:
     //! vector containing the controller type for each motor
     std::vector<int8_t> motorControllerType;
 private:
-    //! timer
-    Timer timer;
     //! Handle of the FTDI device
     FT_HANDLE m_ftHandle;
     //! number of devices connected

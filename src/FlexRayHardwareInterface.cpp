@@ -1,5 +1,7 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
+#include "common_utilities/timer.hpp"
+
 FlexRayHardwareInterface::FlexRayHardwareInterface() {
   motorState.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION, 1);
   motorControllerType.resize(
@@ -629,6 +631,7 @@ void FlexRayHardwareInterface::updateMotorState() {
 double FlexRayHardwareInterface::measureConnectionTime() {
   std::ofstream file;
   file.open("measureConnectionTime.log");
+  Timer timer;
   timer.start();
   for (uint i = 0; i < 1000; i++) {
     updateCommandFrame();
@@ -684,6 +687,7 @@ float FlexRayHardwareInterface::recordTrajectories(
   long sample = 0;
 
   // start recording
+  Timer timer;
   timer.start();
   while (elapsedTime < recordTime) {
     dt = elapsedTime;
@@ -738,7 +742,6 @@ float FlexRayHardwareInterface::recordTrajectories(
             << std::endl;
     outfile << "roboybehavior name=" << name << " behaviorid=\"200\"> "
             << std::endl;
-    uint m = 0;
     char motorname[10];
     for (uint m = 0; m < idList.size(); m++) {
       sprintf(motorname, "motor%d", idList[m]);
@@ -845,6 +848,7 @@ float FlexRayHardwareInterface::recordTrajectories(
   long sample = 0;
 
   // start recording
+  Timer timer;
   timer.start();
   while (*recording != STOP_TRAJECTORY) {
     dt = elapsedTime;
