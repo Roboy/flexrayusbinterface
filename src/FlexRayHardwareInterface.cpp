@@ -629,10 +629,12 @@ void FlexRayHardwareInterface::updateCommandFrame()
   memcpy((void *)&dataset[72], &controlparams, sizeof(control_Parameters_t));
 }
 
-// Nel secondo menmcp /2
-// nel terzo ḿemcp e'72
-
-uint32_t FlexRayHardwareInterface::NumberOfSetBits(uint32_t i)
+/**
+ * This function counts the number of bits set in a bitmask
+ * @param i bitmask
+ * @return number of ones set
+ */
+static uint32_t NumberOfSetBits(uint32_t i)
 {
   i = i - ((i >> 1) & 0x55555555);
   i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
@@ -864,7 +866,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
 
 float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
                                                    std::vector<int> &idList, std::vector<int> &controlmode,
-                                                   int8_t *recording)
+                                                   SteeringCommand *recording)
 {
   // this will be filled with the trajectories
   trajectories.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION);

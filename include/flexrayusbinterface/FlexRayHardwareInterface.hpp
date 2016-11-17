@@ -7,29 +7,33 @@
 
 #include "flexrayusbinterface/CommunicationData.h"
 #include "flexrayusbinterface/Spi.hpp"
-#include "ftd2xx.h"
 
 class FlexRayHardwareInterface
 {
 public:
+  enum
+  {
+    SoftSpring,
+    MiddleSpring,
+    HardSpring
+  };
+
+  enum SteeringCommand
+  {
+    STOP_TRAJECTORY = 0,
+    PLAY_TRAJECTORY,
+    PAUSE_TRAJECTORY,
+    REWIND_TRAJECTORY
+  };
+
   /** Constructor */
   FlexRayHardwareInterface();
   /** Destructor */
   ~FlexRayHardwareInterface();
-  /**
-   * connect to flexray
-   * @return success
-   */
-  bool connect();
-  /**
-   * use this to initialize the motors
-   */
-  void initializeMotors();
 
   /**
   * This function resets the sensor displacement of one motor
   */
-
   void relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode);
 
   /**
@@ -86,12 +90,6 @@ public:
    */
   void updateCommandFrame();
 
-  /**
-   * This function checks the number of ones set in a bitmask
-   * @param i bitmask
-   * @return number of ones set
-   */
-  uint32_t NumberOfSetBits(uint32_t i);
 
   /**
    * Checks the number of connected ganglia
@@ -125,10 +123,10 @@ public:
    * @param trajectories - reference will be filled with trajectories
    * @param idList - record from these motors
    * @param controlMode - what values should be recorded
-   * @param stop_recording - pointer to steering bool
+   * @param recording - pointer to steering command
    */
   float recordTrajectories(float samplingTime, std::vector<std::vector<float>>& trajectories, std::vector<int>& idList,
-                           std::vector<int>& controlMode, int8_t* recording);
+                           std::vector<int>& controlMode, SteeringCommand* recording);
 
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
@@ -142,6 +140,16 @@ public:
   control_Parameters_t controlparams;
 
 private:
+  /**
+   * connect to flexray
+   * @return success
+   */
+  bool connect();
+  /**
+   * use this to initialize the motors
+   */
+  void initializeMotors();
+
   //! bitmask with active ganglions
   unsigned short activeGanglionsMask;
   //! vector containing a status for each motor
@@ -159,18 +167,4 @@ private:
   WORD dataset[DATASETSIZE];
   //! this will contain data coming from flexray
   WORD InputBuffer[DATASETSIZE];
-
-  enum
-  {
-    SoftSpring,
-    MiddleSpring,
-    HardSpring
-  };
-  enum SteeringCommand
-  {
-    STOP_TRAJECTORY = 0,
-    PLAY_TRAJECTORY,
-    PAUSE_TRAJECTORY,
-    REWIND_TRAJECTORY
-  };
 };
