@@ -1,5 +1,8 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
+// ros
+#include <ros/console.h>
+
 #include "common_utilities/timer.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface()

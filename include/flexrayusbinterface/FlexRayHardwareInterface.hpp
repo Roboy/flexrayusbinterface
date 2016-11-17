@@ -12,8 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
-// ros
-#include <ros/console.h>
+#include <vector>
 
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE
