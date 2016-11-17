@@ -12,8 +12,6 @@
 
 #include "common_utilities/timer.hpp"
 
-#define HARDWARE
-
 FlexRayHardwareInterface::FlexRayHardwareInterface()
 {
   motorState.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION, 1);

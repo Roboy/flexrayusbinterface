@@ -6,9 +6,6 @@
 #include <ros/console.h>
 #include "ftd2xx.h"
 
-//! comment if no hardware available
-#define HARDWARE
-
 #define NUM_SPI_FRAMES 310
 /*! \def DATASETSIZE
  * \brief number of words to exchange per SPI frame (taken from CommunicationData.h)
