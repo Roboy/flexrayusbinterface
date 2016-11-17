@@ -1,37 +1,31 @@
-/* 
- * File:   FlexRayHardwareInterface.hpp
- * Author: letrend
- *
- * Created on November 18, 2015, 4:04 PM
- */
-
 #pragma once
 
 //! comment if no hardware available
 #define HARDWARE
-#include "VirtualRoboy.hpp"
 
+#include "flexrayusbinterface/CommunicationData.h"
+#include "common_utilities/timer.hpp"
 #include "ftd2xx.h"
+// std
+#include <utility>
+#include <fstream>
+#include <cstdlib>
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
-#include "CommunicationData.h"
+// ros
 #include <ros/console.h>
-#include <utility>
-#include "timer.hpp"
-#include <fstream>
-#include <cstdlib>
 
 #define NUM_SPI_FRAMES 310
-/*! \def DATASETSIZE 
+/*! \def DATASETSIZE
  * \brief number of words to exchange per SPI frame (taken from CommunicationData.h)
  */
-#define DATASETSIZE NUM_SPI_FRAMES 
-/*! \def USBOUTSIZE 
+#define DATASETSIZE NUM_SPI_FRAMES
+/*! \def USBOUTSIZE
  * \brief size of USB out buffer in bytes (64 byte aligned)
  */
 #define USBOUTSIZE (((DATASETSIZE*17)/64)+1)*64
-/*! \def USBINSIZE 
+/*! \def USBINSIZE
  * \brief size of USB in buffer in bytes (64 byte aligned)
  */
 #define USBINSIZE (((DATASETSIZE*2)/64)+1)*64
@@ -97,7 +91,7 @@ public:
      * @param spPosMax
      */
     void initVelocityControl(float Pgain=200.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
-    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
     float spPosMin=-100.0, float spPosMax=100.0);
     /**
      * This function initializes velocity control for one specific motor in a ganglion.
@@ -105,7 +99,7 @@ public:
     void initVelocityControl(uint ganglion, uint motor, float Pgain=200.0, float IGain=0.0, float Dgain=0.0,
                              float forwardGain=0.0, float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0,
                              float IntegralPosMax=0.0, float spPosMin=-100.0, float spPosMax=100.0);
-    
+
     /**
      * This function initializes force control for all motors on all ganglia. Pleaser refer to myorobotics
      * documentation for details on control parameters.
@@ -121,7 +115,7 @@ public:
      * @param spPosMax
      */
     void initForceControl(float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
-    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0, 
+    float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
     float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
     /**
      * This function initializes force control for one specific motor in a ganglion.
@@ -184,7 +178,7 @@ public:
                              std::vector<int> &idList, std::vector<int> &controlMode, int8_t *recording);
 
     //! upstream from ganglions to PC
-    ganglionData_t GanglionData[NUMBER_OF_GANGLIONS]; 
+    ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
     //! bitmask with active ganglions
     unsigned short activeGanglionsMask;
     //! number of connected ganglions
@@ -202,8 +196,6 @@ public:
     //! vector containing the controller type for each motor
     std::vector<int8_t> motorControllerType;
 private:
-    //! virtual roboy for simulation
-    VirtualRoboy* virtualRoboy;
     //! timer
     Timer timer;
     //! Handle of the FTDI device
@@ -213,7 +205,7 @@ private:
     //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
     uint m_clockDivisor = 2;
     //! this will be send via flexray
-    WORD dataset[DATASETSIZE];  
+    WORD dataset[DATASETSIZE];
     //! this will contain data coming from flexray
     WORD InputBuffer[DATASETSIZE];
     /**
@@ -260,7 +252,7 @@ private:
     /**
      * Configure the MPSSE controller into an SPI module
      * @param ftHandle Handle of the device
-     * @param dwClockDivisor 
+     * @param dwClockDivisor
      * @return (true) SPI initialization successful (false) Error configuring SPI
      */
     bool ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor);
@@ -279,21 +271,21 @@ private:
      * @return FT_STATUS
      */
     FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords);
-    
+
     // necessary for MPSSE command
-    const BYTE MSB_RISING_EDGE_CLOCK_BYTE_OUT = '\x10';             
-    const BYTE MSB_FALLING_EDGE_CLOCK_BYTE_OUT = '\x11';            
-    const BYTE MSB_RISING_EDGE_CLOCK_BIT_OUT = '\x12';              
-    const BYTE MSB_FALLING_EDGE_CLOCK_BIT_OUT = '\x13';             
-    const BYTE MSB_RISING_EDGE_CLOCK_BYTE_IN = '\x20';              
-    const BYTE MSB_RISING_EDGE_CLOCK_BIT_IN = '\x22';               
-    const BYTE MSB_FALLING_EDGE_CLOCK_BYTE_IN = '\x24';             
-    const BYTE MSB_FALLING_EDGE_CLOCK_BIT_IN = '\x26';              
-    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE = '\x31';   
-    const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BYTE = '\x34';   
-    const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BIT = '\x36';    
-    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';  
-    
+    const BYTE MSB_RISING_EDGE_CLOCK_BYTE_OUT = '\x10';
+    const BYTE MSB_FALLING_EDGE_CLOCK_BYTE_OUT = '\x11';
+    const BYTE MSB_RISING_EDGE_CLOCK_BIT_OUT = '\x12';
+    const BYTE MSB_FALLING_EDGE_CLOCK_BIT_OUT = '\x13';
+    const BYTE MSB_RISING_EDGE_CLOCK_BYTE_IN = '\x20';
+    const BYTE MSB_RISING_EDGE_CLOCK_BIT_IN = '\x22';
+    const BYTE MSB_FALLING_EDGE_CLOCK_BYTE_IN = '\x24';
+    const BYTE MSB_FALLING_EDGE_CLOCK_BIT_IN = '\x26';
+    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE = '\x31';
+    const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BYTE = '\x34';
+    const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BIT = '\x36';
+    const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';
+
     void getErrorMessage(FT_STATUS status, char* msg){
         snprintf(msg,256,"%s", errorMessages[status].c_str());
     }

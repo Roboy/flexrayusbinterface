@@ -2,11 +2,14 @@
 
 #include "FlexRayHardwareInterface.hpp"
 #include <ncurses.h>
+#include <vector>
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Float32.h"
 #include "common_utilities/MotorStatus.h"
 #include "common_utilities/MotorCommand.h"
+
+using namespace std;
 
 enum COLORS {
     CYAN = 1,
