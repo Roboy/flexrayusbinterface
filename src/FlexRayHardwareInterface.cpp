@@ -427,7 +427,7 @@ void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t m
 void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float Dgain, float forwardGain,
                                                 float deadBand, float integral, float IntegralPosMin,
                                                 float IntegralPosMax, float spPosMin, float spPosMax,
-                                                float torqueConstant, char springType)
+                                                float torqueConstant, SpringElasticity springType)
 {
   controlparams.spPosMax = spPosMax;  // float32
   controlparams.spNegMax = spPosMin;  // float32
@@ -446,19 +446,19 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
   switch (springType)
   {
     // f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
-    case SoftSpring:  // D311-spring 0.621249
+    case SpringElasticity::Soft:  // D311-spring 0.621249
       polyPar[0] = 0;
       polyPar[1] = 0.237536;
       polyPar[2] = -0.000032;
       polyPar[3] = 0;
       break;
-    case MiddleSpring:
+    case SpringElasticity::Medium:
       polyPar[0] = 1.604382;
       polyPar[1] = 0.508932;
       polyPar[2] = -0.000117;
       polyPar[3] = 0;
       break;
-    case HardSpring:
+    case SpringElasticity::Hard:
       polyPar[0] = 1.186483;
       polyPar[1] = 0.938377;
       polyPar[2] = -0.000274;
@@ -504,7 +504,7 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
 void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
                                                 float Dgain, float forwardGain, float deadBand, float integral,
                                                 float IntegralPosMin, float IntegralPosMax, float spPosMin,
-                                                float spPosMax, float torqueConstant, char springType)
+                                                float spPosMax, float torqueConstant, SpringElasticity springType)
 {
   controlparams.spPosMax = spPosMax;  // float32
   controlparams.spNegMax = spPosMin;  // float32
@@ -523,19 +523,19 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
   switch (springType)
   {
     // f=polyPar[0]+polyPar[1]*d +polyPar[2]*d^2+ +polyPar[3]*d^3+ +polyPar[4]*d^4
-    case SoftSpring:  // D311-spring
+    case SpringElasticity::Soft:  // D311-spring
       polyPar[0] = 0;
       polyPar[1] = 0.237536;
       polyPar[2] = -0.000032;
       polyPar[3] = 0;
       break;
-    case MiddleSpring:
+    case SpringElasticity::Medium:
       polyPar[0] = 1.604382;
       polyPar[1] = 0.508932;
       polyPar[2] = -0.000117;
       polyPar[3] = 0;
       break;
-    case HardSpring:
+    case SpringElasticity::Hard:
       polyPar[0] = 1.186483;
       polyPar[1] = 0.938377;
       polyPar[2] = -0.000274;
@@ -866,7 +866,7 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, float rec
 
 float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vector<std::vector<float>> &trajectories,
                                                    std::vector<int> &idList, std::vector<int> &controlmode,
-                                                   SteeringCommand *recording)
+                                                   RecordingAction recording)
 {
   // this will be filled with the trajectories
   trajectories.resize(NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION);
@@ -911,10 +911,10 @@ float FlexRayHardwareInterface::recordTrajectories(float samplingTime, std::vect
   // start recording
   Timer timer;
   timer.start();
-  while (*recording != STOP_TRAJECTORY)
+  while (recording != RecordingAction::Stop)
   {
     dt = elapsedTime;
-    if (*recording == PLAY_TRAJECTORY)
+    if (recording == RecordingAction::Play)
     {
       exchangeData();
       for (uint32_t m = 0; m < idList.size(); m++)

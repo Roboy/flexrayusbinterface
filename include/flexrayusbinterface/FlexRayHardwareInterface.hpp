@@ -11,20 +11,9 @@
 class FlexRayHardwareInterface
 {
 public:
-  enum
-  {
-    SoftSpring,
-    MiddleSpring,
-    HardSpring
-  };
+  enum class SpringElasticity { Soft, Medium, Hard };
 
-  enum SteeringCommand
-  {
-    STOP_TRAJECTORY = 0,
-    PLAY_TRAJECTORY,
-    PAUSE_TRAJECTORY,
-    REWIND_TRAJECTORY
-  };
+  enum class RecordingAction { Stop, Play, Pause, Rewind };
 
   /** Constructor */
   FlexRayHardwareInterface();
@@ -72,14 +61,14 @@ public:
   void initForceControl(float Pgain = 70.0, float IGain = 0.0, float Dgain = 0.0, float forwardGain = 0.0,
                         float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
                         float IntegralPosMax = 0.0, float spPosMin = -100.0, float spPosMax = 100.0,
-                        float torqueConstant = 1.0, char springType = SoftSpring);
+                        float torqueConstant = 1.0, SpringElasticity springType = SpringElasticity::Soft);
   /**
    * This function initializes force control for one specific motor in a ganglion.
    */
   void initForceControl(uint32_t ganglion, uint32_t motor, float Pgain = 70.0, float IGain = 0.0, float Dgain = 0.0,
                         float forwardGain = 0.0, float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
                         float IntegralPosMax = 0.0, float spPosMin = -100.0, float spPosMax = 100.0,
-                        float torqueConstant = 1.0, char springType = SoftSpring);
+                        float torqueConstant = 1.0, SpringElasticity springType = SpringElasticity::Soft);
   /**
    * This function exchanges data between interface and motors
    */
@@ -126,7 +115,7 @@ public:
    * @param recording - pointer to steering command
    */
   float recordTrajectories(float samplingTime, std::vector<std::vector<float>>& trajectories, std::vector<int>& idList,
-                           std::vector<int>& controlMode, SteeringCommand* recording);
+                           std::vector<int>& controlMode, RecordingAction recording);
 
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
