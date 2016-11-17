@@ -52,16 +52,6 @@ public:
   /**
   *This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
   * documentation for details on control parameters.
-  * @param Pgain
-  * @param IGain
-  * @param Dgain
-  * @param forwardGain
-  * @param deadBand
-  * @param integral
-  * @param IntegralPosMin
-  * @param IntegralPosMax
-  * @param spPosMin
-  * @param spPosMax
   */
   void initPositionControl(float Pgain = 100.0, float IGain = 0.0, float Dgain = 0.0, float forwardGain = 0.0,
                            float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
@@ -76,16 +66,6 @@ public:
   /**
    * This function initializes velocity control for all motors on all ganglia. Pleaser refer to myorobotics
    * documentation for details on control parameters.
-   * @param Pgain
-   * @param IGain
-   * @param Dgain
-   * @param forwardGain
-   * @param deadBand
-   * @param integral
-   * @param IntegralPosMin
-   * @param IntegralPosMax
-   * @param spPosMin
-   * @param spPosMax
    */
   void initVelocityControl(float Pgain = 200.0, float IGain = 0.0, float Dgain = 0.0, float forwardGain = 0.0,
                            float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
@@ -101,16 +81,6 @@ public:
   /**
    * This function initializes force control for all motors on all ganglia. Pleaser refer to myorobotics
    * documentation for details on control parameters.
-   * @param Pgain
-   * @param IGain
-   * @param Dgain
-   * @param forwardGain
-   * @param deadBand
-   * @param integral
-   * @param IntegralPosMin
-   * @param IntegralPosMax
-   * @param spPosMin
-   * @param spPosMax
    */
   void initForceControl(float Pgain = 70.0, float IGain = 0.0, float Dgain = 0.0, float forwardGain = 0.0,
                         float deadBand = 0.0, float integral = 0.0, float IntegralPosMin = 0.0,
