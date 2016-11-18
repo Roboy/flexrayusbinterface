@@ -566,36 +566,6 @@ public:
     }
 
     void recordTrajectories() {
-        timeout(-1);
-        echo();
-        print(4, 0, cols, " ");
-        print(5, 0, cols, " ");
-        printMessage(4, 0, filenamestring);
-        mvgetnstr(4, strlen(filenamestring), inputstring, 30);
-        std::string name(inputstring);
-        print(4, 0, cols, " ");
-        printMessage(4, 0, samplingtimestring, CYAN);
-        mvgetnstr(4, strlen(samplingtimestring), inputstring, 30);
-        float samplingTime = atof(inputstring);
-        printMessage(5, 0, recordtimestring, CYAN);
-        mvgetnstr(5, strlen(recordtimestring), inputstring, 30);
-        double recordTime = atof(inputstring);
-        print(4, 0, cols, " ");
-        print(5, 0, cols, " ");
-        printMessage(4, 0, recordingstring, RED);
-        std::vector<std::vector<float>> trajectories;
-        std::vector<int> idList = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-        std::vector<int> controlmode(16, 1);
-        float averageSamplingTime = flexray.recordTrajectories(samplingTime, recordTime, trajectories, idList,
-                                                               controlmode, name);
-        print(4, 0, cols, " ");
-        printMessage(4, 0, donestring, GREEN);
-        char averagetimestring[50];
-        sprintf(averagetimestring, "average %s%f", samplingtimestring, averageSamplingTime);
-        printMessage(4, strlen(donestring), averagetimestring, CYAN);
-        usleep(500000);
-        print(4, 0, cols, " ");
-        print(5, 0, cols, " ");
     }
 
     void setAllToForce() {

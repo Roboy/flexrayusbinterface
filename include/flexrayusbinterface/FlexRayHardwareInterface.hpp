@@ -98,27 +98,6 @@ public:
    */
   double measureConnectionTime();
 
-  /**
-   * Records trajectories of all available motors
-   * @param samplingTime - sampling time in milliseconds
-   * @param recordTime - time span to record in seconds
-   * @param trajectories - reference will be filled with trajectories
-   * @param idList - record from these motors
-   * @param controlMode - what values should be recorded
-   */
-  float recordTrajectories(float samplingTime, float recordTime, std::vector<std::vector<float>>& trajectories,
-                           std::vector<int>& idList, std::vector<int>& controlMode, std::string name = "");
-  /**
-   * Records trajectories of all available motors
-   * @param samplingTime - sampling time in milliseconds
-   * @param trajectories - reference will be filled with trajectories
-   * @param idList - record from these motors
-   * @param controlMode - what values should be recorded
-   * @param recording - pointer to steering command
-   */
-  float recordTrajectories(float samplingTime, std::vector<std::vector<float>>& trajectories, std::vector<int>& idList,
-                           std::vector<int>& controlMode, RecordingAction recording);
-
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
   //! number of connected ganglions
