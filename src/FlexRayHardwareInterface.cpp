@@ -1,8 +1,8 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
-#include <chrono>
 #include <string.h>
 #include <unistd.h>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -10,7 +10,6 @@
 
 // ros
 #include <ros/console.h>
-
 
 FlexRayHardwareInterface::FlexRayHardwareInterface()
 {
@@ -28,10 +27,6 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
 #endif
   initializeMotors();
 };
-
-FlexRayHardwareInterface::~FlexRayHardwareInterface()
-{
-}
 
 bool FlexRayHardwareInterface::connect()
 {
@@ -100,14 +95,13 @@ void FlexRayHardwareInterface::initializeMotors()
   }
   initForceControl();
 
-  uint32_t activeGanglionsMask = exchangeData();
+  auto ganglions = exchangeData();
 #ifdef HARDWARE
   updateMotorState();
 #else
   ROS_DEBUG("NO HARDWARE MODE");
 #endif
-  ROS_INFO("%d ganglions are connected via flexray, activeGanglionsMask %c", NumberOfSetBits(activeGanglionsMask),
-           activeGanglionsMask);
+  ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
 void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode)
@@ -553,7 +547,7 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
   exchangeData();
 }
 
-uint32_t FlexRayHardwareInterface::exchangeData()
+std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 {
   uint32_t activeGanglionsMask = 0;
   WORD dataset[DATASETSIZE];
@@ -603,11 +597,6 @@ uint32_t FlexRayHardwareInterface::exchangeData()
   updateMotorState();  // ogni volta che scrivo e leggo faccio un update del
                        // motor state (cambia da 0 a 1, da 0 a 1)
   return activeGanglionsMask;
-}
-
-uint32_t FlexRayHardwareInterface::getNumberOfConnectedGanglions()
-{
-  return NumberOfSetBits(exchangeData());
 }
 
 void FlexRayHardwareInterface::updateMotorState()

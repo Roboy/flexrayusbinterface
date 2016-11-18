@@ -1,6 +1,7 @@
 #pragma once
 
 // std
+#include <bitset>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -8,29 +9,26 @@
 #include "flexrayusbinterface/CommunicationData.h"
 #include "flexrayusbinterface/Spi.hpp"
 
-/**
- * This function counts the number of bits set in a bitmask
- * @param i bitmask
- * @return number of ones set
- */
-inline uint32_t NumberOfSetBits(uint32_t i)
-{
-  i = i - ((i >> 1) & 0x55555555);
-  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-}
-
 class FlexRayHardwareInterface
 {
 public:
-  enum class SpringElasticity { Soft, Medium, Hard };
+  enum class SpringElasticity
+  {
+    Soft,
+    Medium,
+    Hard
+  };
 
-  enum class RecordingAction { Stop, Play, Pause, Rewind };
+  enum class RecordingAction
+  {
+    Stop,
+    Play,
+    Pause,
+    Rewind
+  };
 
   /** Constructor */
   FlexRayHardwareInterface();
-  /** Destructor */
-  ~FlexRayHardwareInterface();
 
   /**
   * This function resets the sensor displacement of one motor
@@ -86,7 +84,7 @@ public:
    * This function exchanges data between interface and motors
    * @return the mask of connected ganglia
    */
-  uint32_t exchangeData();
+  std::bitset<NUMBER_OF_GANGLIONS> exchangeData();
 
   /**
    * Checks which motors are ready and updates motorState
@@ -100,8 +98,6 @@ public:
 
   //! upstream from ganglions to PC
   ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
-  //! number of connected ganglions
-  uint32_t getNumberOfConnectedGanglions();
   //! command frames containing motor control parameters for 3 ganglia
   comsCommandFrame commandframe0[3];
   //! command frames containing motor control parameters for 3 ganglia
