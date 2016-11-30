@@ -14,16 +14,12 @@
 FlexRayHardwareInterface::FlexRayHardwareInterface()
 {
   motorState.fill(1);
-#ifdef HARDWARE
   ROS_INFO("Trying to connect to FlexRay");
   while (!connect())
   {
     ROS_INFO("retrying...");
     usleep(1000000);  // sleep for a second
   }
-#else
-  ROS_DEBUG("No Hardware mode enabled");
-#endif
   command.params.tag = 0;               // sint32
   command.params.outputPosMax = 1000;   // sint32
   command.params.outputNegMax = -1000;  // sint32
@@ -42,11 +38,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
   initForceControl();
 
   auto ganglions = exchangeData();
-#ifdef HARDWARE
   updateMotorState();
-#else
-  ROS_DEBUG("NO HARDWARE MODE");
-#endif
   ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
@@ -471,7 +463,6 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
 std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 {
   uint32_t activeGanglionsMask = 0;
-#ifdef HARDWARE
   FT_STATUS ftStatus;
   std::array<WORD, DATASETSIZE> buffer;
   std::memcpy(&buffer, &command, sizeof(command));
@@ -506,10 +497,6 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
     // active ganglions, generated from usbFlexRay interface
     activeGanglionsMask = buffer[sizeof(GanglionData) >> 1];
   }
-#else
-  ROS_DEBUG("NO HARDWARE");
-  activeGanglionsMask = 0b111111;
-#endif
   updateMotorState();  // ogni volta che scrivo e leggo faccio un update del
                        // motor state (cambia da 0 a 1, da 0 a 1)
   return activeGanglionsMask;

@@ -421,7 +421,6 @@ FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
     dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
   }
   FT_STATUS ftStatus = FT_OK;
-#ifdef HARDWARE
   do
   {
     ftStatus = FT_Write(ftHandle, OutputBuffer, dwNumBytesToSend,
@@ -433,9 +432,6 @@ FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
       ROS_ERROR_STREAM(" something wrong with FT_Write call, Error code " << errorMessage);
     }
   } while (ftStatus != FT_OK);
-#else
-  ROS_DEBUG("No Hardware mode enabled, not trying to send anything");
-#endif
   dwNumBytesToSend = 0;  // Clear output buffer
   return ftStatus;
 }
