@@ -24,7 +24,30 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
 #else
   ROS_DEBUG("No Hardware mode enabled");
 #endif
-  initializeMotors();
+  command.params.tag = 0;               // sint32
+  command.params.outputPosMax = 1000;   // sint32
+  command.params.outputNegMax = -1000;  // sint32
+  command.params.timePeriod = 100;      // float32      //in us set time period to avoid error case
+
+  command.params.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
+  command.params.params.pidParameters.lastError = 0;                        // float32
+
+  for (auto& frame : command.frame)
+  {
+    for (uint32_t j = 0; j < 4; j++)
+    {
+      frame.sp[j] = 0;
+    }
+  }
+  initForceControl();
+
+  auto ganglions = exchangeData();
+#ifdef HARDWARE
+  updateMotorState();
+#else
+  ROS_DEBUG("NO HARDWARE MODE");
+#endif
+  ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
 bool FlexRayHardwareInterface::connect()
@@ -77,34 +100,6 @@ bool FlexRayHardwareInterface::connect()
     ROS_ERROR("device not connected");
   }
   return false;
-};
-
-void FlexRayHardwareInterface::initializeMotors()
-{
-  command.params.tag = 0;               // sint32
-  command.params.outputPosMax = 1000;   // sint32
-  command.params.outputNegMax = -1000;  // sint32
-  command.params.timePeriod = 100;      // float32      //in us set time period to avoid error case
-
-  command.params.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
-  command.params.params.pidParameters.lastError = 0;                        // float32
-
-  for (auto& frame : command.frame)
-  {
-    for (uint32_t j = 0; j < 4; j++)
-    {
-      frame.sp[j] = 0;
-    }
-  }
-  initForceControl();
-
-  auto ganglions = exchangeData();
-#ifdef HARDWARE
-  updateMotorState();
-#else
-  ROS_DEBUG("NO HARDWARE MODE");
-#endif
-  ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
 void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode)

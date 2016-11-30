@@ -114,10 +114,6 @@ private:
    * @return success
    */
   bool connect();
-  /**
-   * use this to initialize the motors
-   */
-  void initializeMotors();
 
   //! vector containing a status for each motor
   std::array<int8_t, NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION> motorState;
