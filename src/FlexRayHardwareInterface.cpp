@@ -29,9 +29,12 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
 
 bool FlexRayHardwareInterface::connect()
 {
-  if (CheckDeviceConnected(&m_numberOfConnectedDevices) == true)
+  //! number of devices connected
+  uint32_t numberOfConnectedDevices;
+
+  if (CheckDeviceConnected(&numberOfConnectedDevices) == true)
   {
-    if (GetDeviceInfo(&m_numberOfConnectedDevices) == true)
+    if (GetDeviceInfo(&numberOfConnectedDevices) == true)
     {
       if (OpenPortAndConfigureMPSSE(&m_ftHandle, USBINSIZE, USBOUTSIZE) == true)
       {
@@ -45,7 +48,9 @@ bool FlexRayHardwareInterface::connect()
             bool spiconfigured = false;
             do
             {
-              spiconfigured = ConfigureSPI(&m_ftHandle, m_clockDivisor);
+              //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
+              constexpr uint32_t clockDivisor = 2;
+              spiconfigured = ConfigureSPI(&m_ftHandle, clockDivisor);
             } while (spiconfigured == false);
             ROS_INFO("connection OK");
             return true;

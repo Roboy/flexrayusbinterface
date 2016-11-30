@@ -126,8 +126,4 @@ private:
 
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
-  //! number of devices connected
-  uint32_t m_numberOfConnectedDevices;
-  //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
-  uint32_t m_clockDivisor = 2;
 };
