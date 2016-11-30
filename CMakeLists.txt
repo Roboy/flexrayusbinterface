@@ -50,18 +50,6 @@ ADD_DEFINITIONS(-DHARDWARE)
 #==============================================================================
 # Application
 #==============================================================================
-add_executable( flexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/main.cpp)
-add_dependencies(flexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
-target_link_libraries( flexrayusbinterface
-                        ${Boost_LIBRARIES}
-                        ${libftd2xx_LIBRARY}
-                        ${CMAKE_THREAD_LIBS_INIT}
-                        ${catkin_LIBRARIES}
-                        ${ncurses_LIBRARIES}
-                        -ldl
-)
-
-
 add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp)
 add_dependencies(libflexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
 target_link_libraries( libflexrayusbinterface
@@ -76,11 +64,6 @@ target_link_libraries( libflexrayusbinterface
 #==============================================================================
 # Installation
 #==============================================================================
-install(TARGETS
-        flexrayusbinterface
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        )
-
 install(TARGETS
         libflexrayusbinterface
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

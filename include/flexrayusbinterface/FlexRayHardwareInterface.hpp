@@ -1,6 +1,7 @@
 #pragma once
 
 // std
+#include <array>
 #include <bitset>
 #include <cstdint>
 #include <string>
@@ -96,14 +97,16 @@ public:
    */
   double measureConnectionTime();
 
+  struct
+  {
+    //! command frames containing motor control parameters for the ganglia
+    std::array<comsCommandFrame, NUMBER_OF_GANGLIONS> frame;
+    //! control parameters for motor
+    control_Parameters_t params;
+  } command;
+
   //! upstream from ganglions to PC
-  ganglionData_t GanglionData[NUMBER_OF_GANGLIONS];
-  //! command frames containing motor control parameters for 3 ganglia
-  comsCommandFrame commandframe0[3];
-  //! command frames containing motor control parameters for 3 ganglia
-  comsCommandFrame commandframe1[3];
-  //! control parameters for motor
-  control_Parameters_t controlparams;
+  std::array<ganglionData_t, NUMBER_OF_GANGLIONS> GanglionData;
 
 private:
   /**
@@ -117,9 +120,9 @@ private:
   void initializeMotors();
 
   //! vector containing a status for each motor
-  std::vector<int8_t> motorState;
+  std::array<int8_t, NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION> motorState;
   //! vector containing the controller type for each motor
-  std::vector<int8_t> motorControllerType;
+  std::array<int8_t, NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION> motorControllerType;
 
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
