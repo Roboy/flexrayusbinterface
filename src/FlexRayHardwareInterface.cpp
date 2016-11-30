@@ -38,7 +38,6 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
   initForceControl();
 
   auto ganglions = exchangeData();
-  updateMotorState();
   ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
@@ -178,12 +177,10 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     ROS_INFO("Tag = %d ", command.params.tag);
 
     exchangeData();
-    updateMotorState();
     command.params.tag = 0;
     command.frame[0].OperationMode[0] = Initialise;
     ROS_INFO("Tag = %d ", command.params.tag);
     exchangeData();
-    updateMotorState();
 
     switch (controlmode)
     {
@@ -497,13 +494,6 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
     // active ganglions, generated from usbFlexRay interface
     activeGanglionsMask = buffer[sizeof(GanglionData) >> 1];
   }
-  updateMotorState();  // ogni volta che scrivo e leggo faccio un update del
-                       // motor state (cambia da 0 a 1, da 0 a 1)
-  return activeGanglionsMask;
-}
-
-void FlexRayHardwareInterface::updateMotorState()
-{
   uint32_t m = 0;
   for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
   {
@@ -522,6 +512,7 @@ void FlexRayHardwareInterface::updateMotorState()
       m++;
     }
   }
+  return activeGanglionsMask;
 }
 
 double FlexRayHardwareInterface::measureConnectionTime()

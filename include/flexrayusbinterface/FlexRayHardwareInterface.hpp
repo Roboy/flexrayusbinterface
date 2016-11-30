@@ -88,11 +88,6 @@ public:
   std::bitset<NUMBER_OF_GANGLIONS> exchangeData();
 
   /**
-   * Checks which motors are ready and updates motorState
-   */
-  void updateMotorState();
-
-  /**
    * Measure connection time via multiple calls to exchangeData()
    */
   double measureConnectionTime();
