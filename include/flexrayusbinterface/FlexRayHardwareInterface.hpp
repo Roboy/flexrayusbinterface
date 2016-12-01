@@ -110,6 +110,18 @@ private:
    */
   bool connect();
 
+  void setParams(float Pgain, float IGain, float Dgain, float forwardGain,
+          float deadBand, float integral, float IntegralPosMin,
+          float IntegralPosMax, float spPosMin, float spPosMax);
+
+  void setParams(float Pgain, float IGain, float Dgain, float forwardGain,
+          float deadBand, float integral, float IntegralPosMin,
+          float IntegralPosMax, float spPosMin, float spPosMax,
+          float torqueConstant, SpringElasticity springType);
+
+  void init(comsControllerMode mode);
+  void init(comsControllerMode mode, uint32_t ganglion, uint32_t motor);
+
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
 };
