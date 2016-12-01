@@ -13,7 +13,6 @@
 
 FlexRayHardwareInterface::FlexRayHardwareInterface()
 {
-  motorState.fill(1);
   ROS_INFO("Trying to connect to FlexRay");
   while (!connect())
   {
@@ -220,7 +219,6 @@ void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, flo
     {
       command.frame[i].ControlMode[motor] = Position;
       command.frame[i].OperationMode[motor] = Initialise;
-      motorControllerType[i * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Position;
     }
   }
   exchangeData();
@@ -256,7 +254,6 @@ void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t m
   // initialize PID controller in motordriver boards
   command.frame[ganglion].ControlMode[motor] = Position;
   command.frame[ganglion].OperationMode[motor] = Initialise;
-  motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Position;
   exchangeData();
   float pos = GanglionData[ganglion].muscleState[motor].actuatorPos * command.params.radPerEncoderCount;
   command.frame[ganglion].OperationMode[motor] = Run;
@@ -287,7 +284,6 @@ void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, flo
     {
       command.frame[i].ControlMode[motor] = Velocity;
       command.frame[i].OperationMode[motor] = Initialise;
-      motorControllerType[i * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Velocity;
     }
   }
   exchangeData();
@@ -322,7 +318,6 @@ void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t m
   // initialize PID controller in motordriver boards
   command.frame[ganglion].ControlMode[motor] = Velocity;
   command.frame[ganglion].OperationMode[motor] = Initialise;
-  motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Velocity;
   exchangeData();
   command.frame[ganglion].OperationMode[motor] = Run;
   command.frame[ganglion].sp[motor] = 0;
@@ -384,7 +379,6 @@ void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float 
     {
       command.frame[i].ControlMode[motor] = Force;
       command.frame[i].OperationMode[motor] = Initialise;
-      motorControllerType[i * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Force;
     }
   }
   exchangeData();
@@ -450,7 +444,6 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
   // initialize PID controller in motordriver boards
   command.frame[ganglion].ControlMode[motor] = Force;
   command.frame[ganglion].OperationMode[motor] = Initialise;
-  motorControllerType[ganglion * NUMBER_OF_JOINTS_PER_GANGLION + motor] = Force;
   exchangeData();
   command.frame[ganglion].OperationMode[motor] = Run;
   command.frame[ganglion].sp[motor] = 0;
@@ -493,24 +486,6 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 
     // active ganglions, generated from usbFlexRay interface
     activeGanglionsMask = buffer[sizeof(GanglionData) >> 1];
-  }
-  uint32_t m = 0;
-  for (uint32_t ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++)
-  {
-    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
-    {
-      int8_t status;
-      if (GanglionData[ganglion].muscleState[motor].actuatorCurrent != 0)
-      {
-        status = 1;
-      }
-      else
-      {
-        status = 0;
-      }
-      motorState[m] = status;
-      m++;
-    }
   }
   return activeGanglionsMask;
 }

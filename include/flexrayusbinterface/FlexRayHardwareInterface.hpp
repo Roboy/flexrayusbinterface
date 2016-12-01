@@ -110,11 +110,6 @@ private:
    */
   bool connect();
 
-  //! vector containing a status for each motor
-  std::array<int8_t, NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION> motorState;
-  //! vector containing the controller type for each motor
-  std::array<int8_t, NUMBER_OF_GANGLIONS * NUMBER_OF_JOINTS_PER_GANGLION> motorControllerType;
-
   //! Handle of the FTDI device
   FT_HANDLE m_ftHandle;
 };
