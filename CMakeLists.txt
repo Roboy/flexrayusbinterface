@@ -82,3 +82,9 @@ install(TARGETS
         libflexrayusbinterface
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         )
+
+install(FILES
+        package.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+

@@ -50,7 +50,7 @@ public:
      * This function resets the sensor displacement of one motor
      */
 
-    void relaxSpring(uint ganglion_id,uint motor_id,int controlmode);
+    void relaxSpring(uint ganglion_id,uint motor_id);
 
 
      /**
