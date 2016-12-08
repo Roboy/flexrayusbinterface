@@ -116,13 +116,13 @@ public:
      */
     void initForceControl(float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
     float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
-    float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
+    float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=MiddleSpring);
     /**
      * This function initializes force control for one specific motor in a ganglion.
      */
     void initForceControl(uint ganglion, uint motor, float Pgain=70.0, float IGain=0.0, float Dgain=0.0, float forwardGain=0.0,
                           float deadBand=0.0, float integral=0.0, float IntegralPosMin=0.0, float IntegralPosMax=0.0,
-                          float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=SoftSpring);
+                          float spPosMin=-100.0, float spPosMax=100.0, float torqueConstant=1.0 , char springType=MiddleSpring);
     /**
      * This function exchanges data between interface and motors
      */
