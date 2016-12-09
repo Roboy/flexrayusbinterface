@@ -5,7 +5,7 @@ PROJECT ( flexrayusbinterface )
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/cmake)
 
 SET(CMAKE_BUILD_TYPE Debug)
 
@@ -19,10 +19,12 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp)
 
 find_package (PkgConfig REQUIRED)
-pkg_check_modules(ncurses REQUIRED ncurses)
 
 # Boost
-find_package ( Boost COMPONENTS system thread REQUIRED  )
+find_package ( Boost COMPONENTS system REQUIRED  )
+
+# Mapbox
+find_package ( Mapbox REQUIRED )
 
 # libftd2xx driver lib
 find_package(libftd2xx REQUIRED)
@@ -30,7 +32,7 @@ find_package(libftd2xx REQUIRED)
 # pthread
 find_package (Threads)
 
-catkin_package(DEPENDS Boost ncurses
+catkin_package(DEPENDS Boost Mapbox
         INCLUDE_DIRS include
         CATKIN_DEPENDS common_utilities roscpp rosconsole
         LIBRARIES libflexrayusbinterface
@@ -40,15 +42,15 @@ catkin_package(DEPENDS Boost ncurses
 INCLUDE_DIRECTORIES(    include
                         ../common_utilities/include
                         ${libftd2xx_INCLUDE_DIRS}
+                        ${Mapbox_INCLUDE_DIRS}
                         ${Boost_INCLUDE_DIR}
                         ${catkin_INCLUDE_DIRS}
-                        ${ncurses_INCLUDE_DIRS}
                         )
 
 #==============================================================================
 # Application
 #==============================================================================
-add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp)
+add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
 add_dependencies(libflexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
 target_link_libraries( libflexrayusbinterface
                         ${Boost_LIBRARIES}
@@ -56,7 +58,6 @@ target_link_libraries( libflexrayusbinterface
                         ${CMAKE_THREAD_LIBS_INIT}
                         ${ROSCONSOLE_LIBRARIES}
                         ${catkin_LIBRARIES}
-                        ${ncurses_LIBRARIES}
                         -ldl
 )
 #==============================================================================

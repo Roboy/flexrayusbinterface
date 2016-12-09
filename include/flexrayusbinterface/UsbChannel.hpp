@@ -1,0 +1,57 @@
+#pragma once
+
+#include <mapbox/variant.hpp>
+#include <boost/optional.hpp>
+
+#include "flexrayusbinterface/Spi.hpp"
+#include <bitset>
+
+class UsbChannel {
+    FT_HANDLE handle;
+    inline UsbChannel(FT_HANDLE handle) : handle(handle) {}
+    friend class MpsseChannel;
+
+    template<typename... Args>
+    using variant = mapbox::util::variant<Args...>;
+
+    public:
+        class OpenChannel;
+        class Device;
+        class Connected;
+
+        class MpsseChannel {
+            FT_HANDLE handle;
+            inline MpsseChannel(FT_HANDLE handle): handle(handle) {}
+            friend class OpenChannel;
+            public:
+            auto configure_spi(uint32_t clock_divisor = 2) -> boost::optional<UsbChannel>;
+        };
+
+        class OpenChannel {
+            FT_HANDLE handle;
+            inline OpenChannel(FT_HANDLE handle) : handle(handle) {}
+            friend class Device;
+            public:
+            auto configure_mpsse() -> boost::optional<MpsseChannel>;
+        };
+
+        class Device {
+            Device() = default;
+            friend class Connected;
+            public:
+            auto open(DWORD in, DWORD out) const -> boost::optional<OpenChannel>;
+        };
+
+        class Connected {
+            Connected() = default;
+            friend class UsbChannel;
+            public:
+            auto get_device() const -> boost::optional<Device>;
+        };
+
+        static auto connect() -> boost::optional<Connected>;
+
+   FT_STATUS write(std::vector<WORD> const& data) const; 
+   auto read(std::vector<uint8_t> buffer) const -> variant<std::vector<uint8_t>, FT_STATUS>;
+   auto bytes_available() const -> variant<DWORD, FT_STATUS>;
+};

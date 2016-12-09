@@ -11,7 +11,7 @@
 // ros
 #include <ros/console.h>
 
-FlexRayHardwareInterface::FlexRayHardwareInterface()
+FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(channel)
 {
   ROS_INFO("Trying to connect to FlexRay");
   while (!connect())
@@ -40,56 +40,33 @@ FlexRayHardwareInterface::FlexRayHardwareInterface()
   ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
 };
 
-bool FlexRayHardwareInterface::connect()
+auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInterface>
 {
-  //! number of devices connected
-  uint32_t numberOfConnectedDevices;
-
-  if (CheckDeviceConnected(&numberOfConnectedDevices) == true)
-  {
-    if (GetDeviceInfo(&numberOfConnectedDevices) == true)
-    {
-      if (OpenPortAndConfigureMPSSE(&m_ftHandle, USBINSIZE, USBOUTSIZE) == true)
-      {
-        bool mpssetested = false;
-        uint32_t tries = 0;
-        do
-        {
-          mpssetested = TestMPSSE(&m_ftHandle);
-          if (mpssetested)
-          {
-            bool spiconfigured = false;
-            do
+  if (auto connection = UsbChannel::connect())
+    if (auto device = connection->get_device())
+      if (auto channel = device->open(USBINSIZE, USBOUTSIZE))
+        for (auto tries = 0; tries < 3; ++tries)
+          if (auto mpsse = channel->configure_mpsse())
+            for (;;)
             {
-              //! Value of clock divisor, SCL Frequency = 60/((1+value)*2) = MHz i.e., value of 2 = 10MHz, or 29 = 1Mhz
-              constexpr uint32_t clockDivisor = 2;
-              spiconfigured = ConfigureSPI(&m_ftHandle, clockDivisor);
-            } while (spiconfigured == false);
-            ROS_INFO("connection OK");
-            return true;
-          }
-          ROS_INFO("Testing MPSSE failed, retrying!");
-          tries++;
-        } while (mpssetested == false && tries < 3);  // TestMPSSE
-      }                                               // OpenPortAndConfigureMPSSE
+              if (auto usb = mpsse->configure_spi())
+              {
+                ROS_INFO("connection OK");
+                return FlexRayHardwareInterface(*usb);
+              }
+            }
+          else
+            ROS_INFO("Testing MPSSE failed, retrying!");
       else
-      {
         ROS_ERROR("open port failed\n--Perhaps the kernel automatically loaded "
                   "another driver for the FTDI USB device, from command line "
                   "try: \nsudo rmmod ftdi_sio \n sudo rmmod usbserial\n or "
                   "maybe run with sudo");
-      }
-    }  // GetDeviceInfo
     else
-    {
       ROS_ERROR("device info failed");
-    }
-  }  // CheckDeviceConnected
   else
-  {
     ROS_ERROR("device not connected");
-  }
-  return false;
+  return boost::none;
 };
 
 void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode)
@@ -255,10 +232,12 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 {
   uint32_t activeGanglionsMask = 0;
   FT_STATUS ftStatus;
-  std::array<WORD, DATASETSIZE> buffer;
-  std::memcpy(&buffer, &command, sizeof(command));
+  std::vector<WORD> buffer;
+  buffer.reserve(DATASETSIZE);
+  std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD),
+              std::back_insert_iterator<std::vector<WORD>>{ buffer });
 
-  ftStatus = SPI_WriteBuffer(m_ftHandle, &buffer[0], DATASETSIZE);  // send data
+  ftStatus = usb.write(buffer);
   if (ftStatus != FT_OK)
   {
     ROS_ERROR_STREAM("Failed to Send a byte through SPI, Error Code: " << ftStatus);
@@ -270,20 +249,23 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 
     // WAIT FOR DATA TO ARRIVE
     ROS_DEBUG("waiting for data");
-    while (dwNumInputBuffer != DATASETSIZE * 2)
+    while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
+                                       [](FT_STATUS status) {
+                                         char errorMessage[256];
+                                         getErrorMessage(status, errorMessage);
+                                         ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
+                                         return 0;
+                                       }) != DATASETSIZE * 2)
     {
-      // get the number of bytes in the device receive buffer
-      ftStatus = FT_GetQueueStatus(m_ftHandle, &dwNumInputBuffer);
-    }
-    if (ftStatus != FT_OK)
-    {
-      char errorMessage[256];
-      getErrorMessage(ftStatus, errorMessage);
-      ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
     }
     ROS_DEBUG("reading data");
-    FT_Read(m_ftHandle, &buffer[0], dwNumInputBuffer, &dwNumBytesRead);
-    std::memcpy(&GanglionData, &buffer, sizeof(GanglionData));
+    auto input = usb.read(std::vector<uint8_t>(DATASETSIZE * sizeof(WORD)));
+    input.match(
+        [this](std::vector<uint8_t> const& data) {
+          auto dest = static_cast<uint8_t*>(static_cast<void*>(&GanglionData));
+          std::copy_n(data.begin(), sizeof(GanglionData), dest);
+        },
+        [](FT_STATUS) {});
 
     // active ganglions, generated from usbFlexRay interface
     activeGanglionsMask = buffer[sizeof(GanglionData) >> 1];
@@ -364,7 +346,8 @@ void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, 
   command.params.torqueConstant = torqueConstant;  // float32
 }
 
-void FlexRayHardwareInterface::init(comsControllerMode mode) {
+void FlexRayHardwareInterface::init(comsControllerMode mode)
+{
   // initialize PID controller in motordriver boards
   for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS; i++)
   {
@@ -386,7 +369,8 @@ void FlexRayHardwareInterface::init(comsControllerMode mode) {
   exchangeData();
 }
 
-void FlexRayHardwareInterface::init(comsControllerMode mode, uint32_t ganglion, uint32_t motor) {
+void FlexRayHardwareInterface::init(comsControllerMode mode, uint32_t ganglion, uint32_t motor)
+{
   // initialize PID controller in motordriver boards
   command.frame[ganglion].ControlMode[motor] = mode;
   command.frame[ganglion].OperationMode[motor] = Initialise;

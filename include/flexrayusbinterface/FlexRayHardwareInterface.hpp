@@ -10,6 +10,9 @@
 #include "flexrayusbinterface/CommunicationData.h"
 #include "flexrayusbinterface/Spi.hpp"
 
+#include "flexrayusbinterface/UsbChannel.hpp"
+
+
 class FlexRayHardwareInterface
 {
 public:
@@ -27,9 +30,6 @@ public:
     Pause,
     Rewind
   };
-
-  /** Constructor */
-  FlexRayHardwareInterface();
 
   /**
   * This function resets the sensor displacement of one motor
@@ -103,12 +103,15 @@ public:
   //! upstream from ganglions to PC
   std::array<ganglionData_t, NUMBER_OF_GANGLIONS> GanglionData;
 
+  static auto connect() -> boost::optional<FlexRayHardwareInterface>;
+
 private:
+  FlexRayHardwareInterface(UsbChannel channel);
+
   /**
    * connect to flexray
    * @return success
    */
-  bool connect();
 
   void setParams(float Pgain, float IGain, float Dgain, float forwardGain,
           float deadBand, float integral, float IntegralPosMin,
@@ -123,5 +126,5 @@ private:
   void init(comsControllerMode mode, uint32_t ganglion, uint32_t motor);
 
   //! Handle of the FTDI device
-  FT_HANDLE m_ftHandle;
+  UsbChannel usb;
 };
