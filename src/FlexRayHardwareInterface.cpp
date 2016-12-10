@@ -666,9 +666,9 @@ float FlexRayHardwareInterface::recordTrajectories(
     for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++) {
         for (uint motor = 0; motor < 4; motor++) {
             if (ganglion < 3)
-                commandframe0[ganglion].sp[motor] = 15.0f;
+                commandframe0[ganglion].sp[motor] = 20.0f;
             else
-                commandframe1[ganglion - 3].sp[motor] = 15.0f;
+                commandframe1[ganglion - 3].sp[motor] = 20.0f;
         }
     }
     updateCommandFrame();
@@ -827,9 +827,9 @@ float FlexRayHardwareInterface::recordTrajectories(
     for (uint ganglion = 0; ganglion < NUMBER_OF_GANGLIONS; ganglion++) {
         for (uint motor = 0; motor < 4; motor++) {
             if (ganglion < 3)
-                commandframe0[ganglion].sp[motor] = 4.0f;
+                commandframe0[ganglion].sp[motor] = 20.0f;
             else
-                commandframe1[ganglion - 3].sp[motor] = 4.0f;
+                commandframe1[ganglion - 3].sp[motor] = 20.0f;
         }
     }
     updateCommandFrame();
