@@ -13,12 +13,6 @@
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(channel)
 {
-  ROS_INFO("Trying to connect to FlexRay");
-  while (!connect())
-  {
-    ROS_INFO("retrying...");
-    usleep(1000000);  // sleep for a second
-  }
   command.params.tag = 0;               // sint32
   command.params.outputPosMax = 1000;   // sint32
   command.params.outputNegMax = -1000;  // sint32
@@ -43,10 +37,15 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
 auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInterface>
 {
   if (auto connection = UsbChannel::connect())
+  {
     if (auto device = connection->get_device())
+    {
       if (auto channel = device->open(USBINSIZE, USBOUTSIZE))
+      {
         for (auto tries = 0; tries < 3; ++tries)
+        {
           if (auto mpsse = channel->configure_mpsse())
+          {
             for (;;)
             {
               if (auto usb = mpsse->configure_spi())
@@ -55,17 +54,30 @@ auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInter
                 return FlexRayHardwareInterface(*usb);
               }
             }
+          }
           else
+          {
             ROS_INFO("Testing MPSSE failed, retrying!");
+          }
+        }
+      }
       else
+      {
         ROS_ERROR("open port failed\n--Perhaps the kernel automatically loaded "
                   "another driver for the FTDI USB device, from command line "
                   "try: \nsudo rmmod ftdi_sio \n sudo rmmod usbserial\n or "
                   "maybe run with sudo");
+      }
+    }
     else
+    {
       ROS_ERROR("device info failed");
+    }
+  }
   else
+  {
     ROS_ERROR("device not connected");
+  }
   return boost::none;
 };
 

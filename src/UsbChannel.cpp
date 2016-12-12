@@ -1,15 +1,14 @@
 #include "flexrayusbinterface/UsbChannel.hpp"
 
 auto UsbChannel::connect() -> boost::optional<Connected> {
-    uint32_t numberOfConnectedDevices;
-    if (CheckDeviceConnected(&numberOfConnectedDevices))
-        return Connected();
+    uint32_t number_of_devices;
+    if (CheckDeviceConnected(&number_of_devices))
+        return Connected(number_of_devices);
     return boost::none;
 }
 
-auto UsbChannel::Connected::get_device() const -> boost::optional<Device> {
-    uint32_t numberOfConnectedDevices;
-    if (GetDeviceInfo(&numberOfConnectedDevices))
+auto UsbChannel::Connected::get_device() -> boost::optional<Device> {
+    if (GetDeviceInfo(&number_of_devices))
         return Device();
     return boost::none;
 }
@@ -22,13 +21,13 @@ auto UsbChannel::Device::open(DWORD in, DWORD out) const -> boost::optional<Open
 }
 
 auto UsbChannel::OpenChannel::configure_mpsse() -> boost::optional<MpsseChannel> {
-    if (TestMPSSE(&handle))
+    if (TestMPSSE(handle))
         return MpsseChannel(handle);
     return boost::none;
 }
 
 auto UsbChannel::MpsseChannel::configure_spi(uint32_t clock_divisor) -> boost::optional<UsbChannel> {
-    if (ConfigureSPI(&handle, clock_divisor))
+    if (ConfigureSPI(handle, clock_divisor))
         return UsbChannel(handle);
     return boost::none;
 }

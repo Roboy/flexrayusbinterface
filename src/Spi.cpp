@@ -111,18 +111,20 @@ bool GetDeviceInfo(DWORD* NumDevs)
   devInfo = (FT_DEVICE_LIST_INFO_NODE*)malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * (*NumDevs));
   FT_STATUS ftStatus;
   ftStatus = FT_GetDeviceInfoList(devInfo, NumDevs);
+
+  ROS_INFO_STREAM(*NumDevs << " devices ");
   if (ftStatus == FT_OK)
   {
     for (unsigned int i = 0; i < *NumDevs; i++)
     {
-      ROS_DEBUG_STREAM(" Dev: " << i);
-      ROS_DEBUG_STREAM(" Flags=0x" << devInfo[i].Flags);
-      ROS_DEBUG_STREAM(" Type=0x" << devInfo[i].Type);
-      ROS_DEBUG_STREAM(" ID=0x" << devInfo[i].ID);
-      ROS_DEBUG_STREAM(" LocId=0x" << devInfo[i].LocId);
-      ROS_DEBUG_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
-      ROS_DEBUG_STREAM(" Description=" << devInfo[i].Description);
-      ROS_DEBUG_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
+      ROS_INFO_STREAM(" Dev: " << i);
+      ROS_INFO_STREAM(" Flags=0x" << devInfo[i].Flags);
+      ROS_INFO_STREAM(" Type=0x" << devInfo[i].Type);
+      ROS_INFO_STREAM(" ID=0x" << devInfo[i].ID);
+      ROS_INFO_STREAM(" LocId=0x" << devInfo[i].LocId);
+      ROS_INFO_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
+      ROS_INFO_STREAM(" Description=" << devInfo[i].Description);
+      ROS_INFO_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
     }
     return true;
   }
@@ -238,11 +240,11 @@ bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD InTransferSize, DWORD 
   }
   usleep(1);  // Wait for all the USB stuff to complete and work
 
-  ROS_DEBUG("MPSSE ready for commands");
+  ROS_INFO("MPSSE ready for commands");
   return true;
 }
 
-bool TestMPSSE(FT_HANDLE* ftHandle)
+bool TestMPSSE(FT_HANDLE ftHandle)
 {
   BYTE byOutputBuffer[DATASETSIZE * 2];
   BYTE byInputBuffer[DATASETSIZE * 2];
@@ -259,11 +261,11 @@ bool TestMPSSE(FT_HANDLE* ftHandle)
   // Enable internal loop-back
   byOutputBuffer[dwNumBytesToSend++] = 0x84;  // Enable loopback
   FT_STATUS ftStatus;
-  ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
+  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
   dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
 
   // Check the receive buffer - it should be empty
-  ftStatus = FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead);  // Get the number
+  ftStatus = FT_GetQueueStatus(ftHandle, &dwNumBytesToRead);  // Get the number
                                                                // of bytes in the
                                                                // FT2232H receive
                                                                // buffer
@@ -273,8 +275,8 @@ bool TestMPSSE(FT_HANDLE* ftHandle)
     getErrorMessage(ftStatus, errorMessage);
     ROS_FATAL_STREAM("Error - MPSSE receive buffer should be empty, Error Code: " << errorMessage << ", try to run "
                                                                                                      "again!");
-    FT_SetBitMode(*ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(*ftHandle);                  // Close the USB port
+    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                  // Close the USB port
     return false;                         // Exit with error
   }
   else
@@ -282,13 +284,13 @@ bool TestMPSSE(FT_HANDLE* ftHandle)
 
   // send bad op-code to check every thing is working correctly
   byOutputBuffer[dwNumBytesToSend++] = 0xAB;  // Add bogus command ‘0xAB’ to the queue
-  ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the BAD command
+  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the BAD command
   dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
 
   uint32_t counter = 0;
   do
   {
-    ftStatus = FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead);  // Get the number of
+    ftStatus = FT_GetQueueStatus(ftHandle, &dwNumBytesToRead);  // Get the number of
                                                                  // bytes in the device
                                                                  // input buffer
     counter++;
@@ -298,7 +300,7 @@ bool TestMPSSE(FT_HANDLE* ftHandle)
   bool bCommandEchod = false;
   if (dwNumBytesToRead)
   {
-    ftStatus = FT_Read(*ftHandle, &byInputBuffer, dwNumBytesToRead,
+    ftStatus = FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead,
                        &dwNumBytesRead);  // Read the data from input buffer
     for (DWORD dwCount = 0; dwCount < dwNumBytesRead - 1;
          dwCount++)  // Check if Bad command and echo command are received
@@ -314,21 +316,21 @@ bool TestMPSSE(FT_HANDLE* ftHandle)
   if (bCommandEchod == false)
   {
     ROS_ERROR("Error in synchronizing the MPSSE");
-    FT_SetBitMode(*ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(*ftHandle);                  // Close the USB port
+    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                  // Close the USB port
     return false;                         // Exit with error
   }
   else
   {
     ROS_DEBUG("MPSSE synchronised.");
     byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
-    ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
+    ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
     dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
     return true;
   }
 }
 
-bool ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor)
+bool ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
 {
   BYTE byOutputBuffer[DATASETSIZE * 2];
   DWORD dwNumBytesToSend = 0;
@@ -344,14 +346,14 @@ bool ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor)
   byOutputBuffer[dwNumBytesToSend++] = '\x97';  // Ensure turn off adaptive clocking
   byOutputBuffer[dwNumBytesToSend++] = '\x8D';  // disable 3 phase data clock
   FT_STATUS ftStatus;
-  ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
+  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
   if (ftStatus != FT_OK)
   {
     char errorMessage[256];
     getErrorMessage(ftStatus, errorMessage);
     ROS_ERROR_STREAM("Error configuring SPI, Error code " << errorMessage);
-    FT_SetBitMode(*ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(*ftHandle);                  // Close the USB port
+    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                  // Close the USB port
     return false;
   }
 
@@ -363,14 +365,14 @@ bool ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor)
   byOutputBuffer[dwNumBytesToSend++] = (BYTE)(dwClockDivisor & '\xFF');  // Set 0xValueL of clock divisor
   byOutputBuffer[dwNumBytesToSend++] = (BYTE)(dwClockDivisor >> 8);      // Set 0xValueH of clock divisor
   byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
-  ftStatus = FT_Write(*ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
+  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
   if (ftStatus != FT_OK)
   {
     char errorMessage[256];
     getErrorMessage(ftStatus, errorMessage);
     ROS_ERROR_STREAM("Error configuring SPI " << errorMessage);
-    FT_SetBitMode(*ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(*ftHandle);                  // Close the USB port
+    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                  // Close the USB port
     return false;
   }
   dwNumBytesToSend = 0;  // Clear output buffer

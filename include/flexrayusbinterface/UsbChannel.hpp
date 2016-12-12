@@ -21,7 +21,7 @@ class UsbChannel {
 
         class MpsseChannel {
             FT_HANDLE handle;
-            inline MpsseChannel(FT_HANDLE handle): handle(handle) {}
+            inline MpsseChannel(FT_HANDLE handle): handle{handle} {}
             friend class OpenChannel;
             public:
             auto configure_spi(uint32_t clock_divisor = 2) -> boost::optional<UsbChannel>;
@@ -29,7 +29,7 @@ class UsbChannel {
 
         class OpenChannel {
             FT_HANDLE handle;
-            inline OpenChannel(FT_HANDLE handle) : handle(handle) {}
+            inline OpenChannel(FT_HANDLE handle) : handle{handle} {}
             friend class Device;
             public:
             auto configure_mpsse() -> boost::optional<MpsseChannel>;
@@ -43,10 +43,11 @@ class UsbChannel {
         };
 
         class Connected {
-            Connected() = default;
+            uint32_t number_of_devices;
+            inline Connected(uint32_t number_of_devices) : number_of_devices{number_of_devices} {}
             friend class UsbChannel;
             public:
-            auto get_device() const -> boost::optional<Device>;
+            auto get_device() -> boost::optional<Device>;
         };
 
         static auto connect() -> boost::optional<Connected>;

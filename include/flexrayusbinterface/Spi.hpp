@@ -56,14 +56,14 @@ bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD InTransferSize, DWORD 
  * @param ftHandle Handle of the device
  * @return (true) MPSSE synchronized (false) Error in synchronizing the MPSSE
  */
-bool TestMPSSE(FT_HANDLE* ftHandle);
+bool TestMPSSE(FT_HANDLE ftHandle);
 /**
  * Configure the MPSSE controller into an SPI module
  * @param ftHandle Handle of the device
  * @param dwClockDivisor
  * @return (true) SPI initialization successful (false) Error configuring SPI
  */
-bool ConfigureSPI(FT_HANDLE* ftHandle, DWORD dwClockDivisor);
+bool ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor);
 /**
  * Send a single byte through the SPI bus
  * @param ftHandle Handle of the device
