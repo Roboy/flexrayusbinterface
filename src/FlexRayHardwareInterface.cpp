@@ -244,10 +244,9 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 {
   uint32_t activeGanglionsMask = 0;
   FT_STATUS ftStatus;
-  std::vector<WORD> buffer;
-  buffer.reserve(DATASETSIZE);
-  std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD),
-              std::back_insert_iterator<std::vector<WORD>>{ buffer });
+  std::vector<WORD> buffer(DATASETSIZE, 0);
+  std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD), std::begin(buffer));
+  
 
   ftStatus = usb.write(buffer);
   if (ftStatus != FT_OK)
@@ -256,31 +255,32 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
   }
   else
   {
-    DWORD dwNumInputBuffer = 0;
-    DWORD dwNumBytesRead;
-
     // WAIT FOR DATA TO ARRIVE
     ROS_DEBUG("waiting for data");
-    while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
-                                       [](FT_STATUS status) {
+    while (usb.bytes_available().match([](DWORD bytes) {
+                                         return bytes;
+                                       },
+                                       [](UsbError error) {
                                          char errorMessage[256];
-                                         getErrorMessage(status, errorMessage);
+                                         getErrorMessage(error.status, errorMessage);
                                          ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
                                          return 0;
                                        }) != DATASETSIZE * 2)
     {
     }
     ROS_DEBUG("reading data");
-    auto input = usb.read(std::vector<uint8_t>(DATASETSIZE * sizeof(WORD)));
+    auto input = usb.read(std::vector<char>(DATASETSIZE * sizeof(WORD)));
     input.match(
-        [this](std::vector<uint8_t> const& data) {
-          auto dest = static_cast<uint8_t*>(static_cast<void*>(&GanglionData));
+        [this, &activeGanglionsMask](std::vector<char> const& data) {
+          auto dest = reinterpret_cast<char*>(&GanglionData[0]);
           std::copy_n(data.begin(), sizeof(GanglionData), dest);
+          // active ganglions, generated from usbFlexRay interface
+          WORD ganglions;
+          std::copy_n(data.begin() + sizeof(GanglionData), sizeof(ganglions), reinterpret_cast<char*>(&ganglions));
+          activeGanglionsMask = ganglions;
         },
-        [](FT_STATUS) {});
+        [](UsbError) {});
 
-    // active ganglions, generated from usbFlexRay interface
-    activeGanglionsMask = buffer[sizeof(GanglionData) >> 1];
   }
   return activeGanglionsMask;
 }

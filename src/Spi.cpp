@@ -249,7 +249,7 @@ bool TestMPSSE(FT_HANDLE ftHandle)
   BYTE byOutputBuffer[DATASETSIZE * 2];
   BYTE byInputBuffer[DATASETSIZE * 2];
   DWORD dwNumBytesToSend = 0;
-  DWORD dwNumBytesSent, dwNumBytesRead, dwNumBytesToRead;
+  DWORD dwNumBytesSent = 0, dwNumBytesRead = 0, dwNumBytesToRead = 0;
 
   /*
    *  Now the MPSSE is ready for commands, each command consists of an op-code
