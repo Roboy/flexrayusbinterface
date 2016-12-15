@@ -67,3 +67,5 @@ install(TARGETS
         libflexrayusbinterface
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         )
+
+catkin_add_gtest(message test/Message.cpp)
