@@ -246,7 +246,6 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
   FT_STATUS ftStatus;
   std::vector<WORD> buffer(DATASETSIZE, 0);
   std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD), std::begin(buffer));
-  
 
   ftStatus = usb.write(buffer);
   if (ftStatus != FT_OK)
@@ -257,9 +256,7 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
   {
     // WAIT FOR DATA TO ARRIVE
     ROS_DEBUG("waiting for data");
-    while (usb.bytes_available().match([](DWORD bytes) {
-                                         return bytes;
-                                       },
+    while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
                                        [](UsbError error) {
                                          char errorMessage[256];
                                          getErrorMessage(error.status, errorMessage);
@@ -269,19 +266,14 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
     {
     }
     ROS_DEBUG("reading data");
-    auto input = usb.read(std::string(sizeof(GanglionData) + sizeof(WORD), '\0'));
+    auto input = usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'));
     input.match(
         [this, &activeGanglionsMask](std::string& data) {
-          auto dest = reinterpret_cast<char*>(&GanglionData[0]);
-          std::copy_n(data.begin(), sizeof(GanglionData), dest);
-          // active ganglions, generated from usbFlexRay interface
+          std::stringstream buffer;
           WORD ganglions;
-          std::copy_n(data.begin() + sizeof(GanglionData), sizeof(ganglions), reinterpret_cast<char*>(&ganglions));
+          buffer.str(data);
+          Parser<DATASETSIZE * sizeof(WORD)>{}.add(GanglionData).add(ganglions).read(buffer);
           activeGanglionsMask = ganglions;
-          while (usb.bytes_available().match([](DWORD bytes) { return bytes; }, [](UsbError) { return 0; })) {
-              usb.read(std::move(data)).match([&data](std::string& input) { data = std::move(input); },
-                                              [](UsbError) {}); 
-          }
         },
         [](UsbError) {});
   }
