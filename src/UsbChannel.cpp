@@ -15,10 +15,10 @@ auto UsbChannel::Connected::get_device() -> boost::optional<Device>
   return boost::none;
 }
 
-auto UsbChannel::Device::open(DWORD in, DWORD out) const -> boost::optional<OpenChannel>
+auto UsbChannel::Device::open() const -> boost::optional<OpenChannel>
 {
   FT_HANDLE handle;
-  if (OpenPortAndConfigureMPSSE(&handle, in, out))
+  if (OpenPortAndConfigureMPSSE(&handle))
     return OpenChannel(handle);
   return boost::none;
 }
@@ -42,7 +42,7 @@ FT_STATUS UsbChannel::write(std::vector<WORD> const& data) const
   return SPI_WriteBuffer(handle, const_cast<WORD*>(&data[0]), data.size());
 }
 
-auto UsbChannel::read(std::vector<char> buffer) const -> variant<std::vector<char>, UsbError>
+auto UsbChannel::read(std::string buffer) const -> variant<std::string, UsbError>
 {
   DWORD num_bytes;
   if (auto status = FT_Read(handle, &buffer.front(), buffer.size() * sizeof(char), &num_bytes))

@@ -40,7 +40,7 @@ auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInter
   {
     if (auto device = connection->get_device())
     {
-      if (auto channel = device->open(USBINSIZE, USBOUTSIZE))
+      if (auto channel = device->open())
       {
         for (auto tries = 0; tries < 3; ++tries)
         {
@@ -265,22 +265,25 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
                                          getErrorMessage(error.status, errorMessage);
                                          ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
                                          return 0;
-                                       }) != DATASETSIZE * 2)
+                                       }) < DATASETSIZE * sizeof(WORD))
     {
     }
     ROS_DEBUG("reading data");
-    auto input = usb.read(std::vector<char>(DATASETSIZE * sizeof(WORD)));
+    auto input = usb.read(std::string(sizeof(GanglionData) + sizeof(WORD), '\0'));
     input.match(
-        [this, &activeGanglionsMask](std::vector<char> const& data) {
+        [this, &activeGanglionsMask](std::string& data) {
           auto dest = reinterpret_cast<char*>(&GanglionData[0]);
           std::copy_n(data.begin(), sizeof(GanglionData), dest);
           // active ganglions, generated from usbFlexRay interface
           WORD ganglions;
           std::copy_n(data.begin() + sizeof(GanglionData), sizeof(ganglions), reinterpret_cast<char*>(&ganglions));
           activeGanglionsMask = ganglions;
+          while (usb.bytes_available().match([](DWORD bytes) { return bytes; }, [](UsbError) { return 0; })) {
+              usb.read(std::move(data)).match([&data](std::string& input) { data = std::move(input); },
+                                              [](UsbError) {}); 
+          }
         },
         [](UsbError) {});
-
   }
   return activeGanglionsMask;
 }

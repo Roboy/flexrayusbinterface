@@ -135,8 +135,10 @@ bool GetDeviceInfo(DWORD* NumDevs)
   }
 }
 
-bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD InTransferSize, DWORD OutTransferSize)
+bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
 {
+  DWORD InTransferSize = USBINSIZE;
+  DWORD OutTransferSize = USBOUTSIZE;
   DWORD dwNumBytesToRead, dwNumBytesRead;
   BYTE byInputBuffer[DATASETSIZE * 2];  // Local buffer to hold data read from the FT2232H
 

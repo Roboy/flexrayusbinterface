@@ -50,7 +50,7 @@ bool GetDeviceInfo(DWORD* NumDevs);
  * @param OutTransferSize Transfer size for USB OUT request
  * @return (true) on success (false) on failure
  */
-bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle, DWORD InTransferSize, DWORD OutTransferSize);
+bool OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle);
 /**
  * test the MPSSE controller
  * @param ftHandle Handle of the device
