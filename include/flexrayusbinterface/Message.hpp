@@ -22,6 +22,13 @@ class Message<BytesAvailable, U, W, Chunks...>
   prev_t prev;
   std::reference_wrapper<U const> chunk;
 
+  template <typename T>
+  auto add_with_cref(T const& new_chunk) -> next_t<T>
+  {
+    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
+    return { *this, new_chunk };
+  }
+
 public:
   static constexpr size_t size = sizeof(U) + prev_t::size;
 
@@ -30,10 +37,10 @@ public:
   }
 
   template <typename T>
-  auto add(T const& chunk) -> next_t<T>
+  auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
-    return { *this, chunk };
+      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
+      return add_with_cref(new_chunk);
   }
 
   template <size_t N>
@@ -69,6 +76,13 @@ class Message<BytesAvailable, U>
 
   std::reference_wrapper<U const> chunk;
 
+  template <typename T>
+  auto add_with_cref(T const& new_chunk) -> next_t<T>
+  {
+    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
+    return { *this, new_chunk };
+  }
+
 public:
   static constexpr size_t size = sizeof(U);
 
@@ -77,10 +91,10 @@ public:
   }
 
   template <typename T>
-  auto add(T const& chunk) -> next_t<T>
+  auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
-    return { *this, chunk };
+      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
+      return add_with_cref(new_chunk);
   }
 
   template <size_t N>
@@ -113,14 +127,21 @@ class Message<BytesAvailable>
   template <typename T>
   using next_t = Message<BytesAvailable - sizeof(T), T>;
 
+  template <typename T>
+  auto add_with_cref(T const& new_chunk) -> next_t<T>
+  {
+    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
+    return { new_chunk };
+  }
+
 public:
   static constexpr size_t size = 0;
 
   template <typename T>
-  auto add(T const& chunk) -> next_t<T>
+  auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-    static_assert(BytesAvailable >= sizeof(T), "There is not enough room in the message.");
-    return { chunk };
+      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
+      return add_with_cref(new_chunk);
   }
 
   template <size_t N>
