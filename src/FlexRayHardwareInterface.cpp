@@ -8,6 +8,7 @@
 #include <iostream>
 #include <utility>
 
+#include "flexrayusbinterface/Message.hpp"
 // ros
 #include <ros/console.h>
 

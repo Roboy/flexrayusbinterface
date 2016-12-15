@@ -17,21 +17,6 @@
 #define USBINSIZE (((DATASETSIZE * 2) / 64) + 1) * 64
 
 /**
- * routine is used to enable slave
- * @param OutputBuffer points to output buffer
- * @param NumBytesToSend number of bytes to send
- * @return NumBytesToSend number of bytes to send
- */
-DWORD SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend);
-/**
- * routine is used to disable slave
- * @param OutputBuffer points to output buffer
- * @param NumBytesToSend number of bytes to send
- * @param end (true) disable slave
- * @return NumBytesToSend number of bytes to send
- */
-DWORD SPI_CSDisable(BYTE* OutputBuffer, DWORD* NumBytesToSend, bool end);
-/**
  * find connected devices
  * @param NumDevs gets filled with number of devices
  * @return (true) if any devices found (false) if no devices found

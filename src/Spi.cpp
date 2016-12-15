@@ -4,21 +4,9 @@
 #include <vector>
 
 #include <ros/console.h>
+#include "flexrayusbinterface/UsbChannel.hpp"
+#include "flexrayusbinterface/Message.hpp"
 #include "ftd2xx.h"
-
-#define NUM_SPI_FRAMES 310
-/*! \def DATASETSIZE
- * \brief number of words to exchange per SPI frame (taken from CommunicationData.h)
- */
-#define DATASETSIZE NUM_SPI_FRAMES
-/*! \def USBOUTSIZE
- * \brief size of USB out buffer in bytes (64 byte aligned)
- */
-#define USBOUTSIZE (((DATASETSIZE * 17) / 64) + 1) * 64
-/*! \def USBINSIZE
- * \brief size of USB in buffer in bytes (64 byte aligned)
- */
-#define USBINSIZE (((DATASETSIZE * 2) / 64) + 1) * 64
 
 // necessary for MPSSE command
 static const BYTE MSB_RISING_EDGE_CLOCK_BYTE_OUT = '\x10';
@@ -33,47 +21,6 @@ static const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE = '\x31';
 static const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BYTE = '\x34';
 static const BYTE MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BIT = '\x36';
 static const BYTE MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BIT = '\x33';
-
-DWORD SPI_CSEnable(BYTE* OutputBuffer, DWORD* NumBytesToSend)
-{
-  DWORD dwNumBytesToSend;
-  dwNumBytesToSend = *NumBytesToSend;
-
-  for (int loop = 0; loop < 2; loop++)  // one 0x80 command can keep 0.2us, do 5
-                                        // times to stay in this situation for
-                                        // 1us
-  {
-    OutputBuffer[dwNumBytesToSend++] = '\x80';  // GPIO command for ADBUS
-    OutputBuffer[dwNumBytesToSend++] = '\x00';  // set CS, MOSI and SCL low
-    OutputBuffer[dwNumBytesToSend++] = '\x0b';  // bit3:CS, bit2:MISO, bit1:MOSI, bit0:SCK
-  }
-  return dwNumBytesToSend;
-}
-
-DWORD SPI_CSDisable(BYTE* OutputBuffer, DWORD* NumBytesToSend, bool end)
-{
-  DWORD dwNumBytesToSend;
-  dwNumBytesToSend = *NumBytesToSend;
-
-  // one 0x80 command can keep 0.2us, do 5 times to stay in this situation for
-  // 1us (leave CS low)
-  // for(int loop=0;loop<2;loop++)
-  {
-    OutputBuffer[dwNumBytesToSend++] = '\x80';  // GPIO command for ADBUS
-    OutputBuffer[dwNumBytesToSend++] = '\x00';  // set CS, MOSI and SCL low
-    OutputBuffer[dwNumBytesToSend++] = '\x0b';  // bit3:CS, bit2:MISO, bit1:MOSI, bit0:SCK
-  }
-
-  if (end == true)
-  {
-    // finally pull CS high
-    OutputBuffer[dwNumBytesToSend++] = '\x80';  // GPIO command for ADBUS
-    OutputBuffer[dwNumBytesToSend++] = '\x08';  // set CS high, MOSI and SCL low
-    OutputBuffer[dwNumBytesToSend++] = '\x0b';  // bit3:CS, bit2:MISO, bit1:MOSI, bit0:SCK
-  }
-
-  return dwNumBytesToSend;
-}
 
 bool CheckDeviceConnected(DWORD* NumDevs)
 {
@@ -264,13 +211,13 @@ bool TestMPSSE(FT_HANDLE ftHandle)
   byOutputBuffer[dwNumBytesToSend++] = 0x84;  // Enable loopback
   FT_STATUS ftStatus;
   ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
-  dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
+  dwNumBytesToSend = 0;                                                              // Reset output buffer pointer
 
   // Check the receive buffer - it should be empty
   ftStatus = FT_GetQueueStatus(ftHandle, &dwNumBytesToRead);  // Get the number
-                                                               // of bytes in the
-                                                               // FT2232H receive
-                                                               // buffer
+                                                              // of bytes in the
+                                                              // FT2232H receive
+                                                              // buffer
   if (dwNumBytesToRead != 0)
   {
     char errorMessage[256];
@@ -279,7 +226,7 @@ bool TestMPSSE(FT_HANDLE ftHandle)
                                                                                                      "again!");
     FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
     FT_Close(ftHandle);                  // Close the USB port
-    return false;                         // Exit with error
+    return false;                        // Exit with error
   }
   else
     ROS_DEBUG("Internal loop-back configured and receive buffer is empty");
@@ -287,14 +234,14 @@ bool TestMPSSE(FT_HANDLE ftHandle)
   // send bad op-code to check every thing is working correctly
   byOutputBuffer[dwNumBytesToSend++] = 0xAB;  // Add bogus command ‘0xAB’ to the queue
   ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the BAD command
-  dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
+  dwNumBytesToSend = 0;                                                              // Reset output buffer pointer
 
   uint32_t counter = 0;
   do
   {
     ftStatus = FT_GetQueueStatus(ftHandle, &dwNumBytesToRead);  // Get the number of
-                                                                 // bytes in the device
-                                                                 // input buffer
+                                                                // bytes in the device
+                                                                // input buffer
     counter++;
   } while ((dwNumBytesToRead == 0) && (ftStatus == FT_OK) &&
            (counter < 100));  // wait for bytes to return, an error or Timeout
@@ -302,8 +249,7 @@ bool TestMPSSE(FT_HANDLE ftHandle)
   bool bCommandEchod = false;
   if (dwNumBytesToRead)
   {
-    ftStatus = FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead,
-                       &dwNumBytesRead);  // Read the data from input buffer
+    ftStatus = FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead);  // Read the data from input buffer
     for (DWORD dwCount = 0; dwCount < dwNumBytesRead - 1;
          dwCount++)  // Check if Bad command and echo command are received
     {
@@ -320,14 +266,14 @@ bool TestMPSSE(FT_HANDLE ftHandle)
     ROS_ERROR("Error in synchronizing the MPSSE");
     FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
     FT_Close(ftHandle);                  // Close the USB port
-    return false;                         // Exit with error
+    return false;                        // Exit with error
   }
   else
   {
     ROS_DEBUG("MPSSE synchronised.");
     byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
     ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
-    dwNumBytesToSend = 0;                                                               // Reset output buffer pointer
+    dwNumBytesToSend = 0;                                                              // Reset output buffer pointer
     return true;
   }
 }
@@ -383,21 +329,37 @@ bool ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
   return true;
 }
 
+template <typename FirstIterator, typename EndIterator>
+static std::string encode(FirstIterator fst, EndIterator const end)
+{
+  std::stringstream ss;
+  char low;
+  char high;
+  auto message = Message<17>{}
+                     .adds("\x80\x00\x0b\x80\x00\x0b")
+                     .add(MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE)
+                     .adds("\x01\x00")
+                     .add(high)
+                     .add(low)
+                     .adds("\x80\x00\x0b\x80\x08\x0b");
+  static_assert(message.size == 17, "The encoding is incorrect!");  
+  for (; fst != end; ++fst)
+  {
+    auto word = WORD{ *fst };
+    high = word >> 8;
+    low = word & 0xff;
+    message.write(ss);
+  }
+  return ss.str();
+}
+
 BOOL SPI_WriteByte(FT_HANDLE ftHandle, WORD bdata)
 {
   DWORD dwNumBytesSent;
-  DWORD dwNumBytesToSend = 0;
-  BYTE OutputBuffer[512];
 
-  dwNumBytesToSend = SPI_CSEnable(&OutputBuffer[0], &dwNumBytesToSend);
-  OutputBuffer[dwNumBytesToSend++] = MSB_FALLING_EDGE_CLOCK_BYTE_OUT;  // Byte out falling edge msb first
-  OutputBuffer[dwNumBytesToSend++] = 1;                                // data length in bytes (low byte)  } +1!!
-  OutputBuffer[dwNumBytesToSend++] = 0;                                // data length in bytes (high byte) }
-  OutputBuffer[dwNumBytesToSend++] = bdata >> 8;                       // output high byte
-  OutputBuffer[dwNumBytesToSend++] = bdata & 0xff;                     // output low byte
-  dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
+  auto message = encode(&bdata, (&bdata) + 1);
   FT_STATUS ftStatus;
-  ftStatus = FT_Write(ftHandle, OutputBuffer, dwNumBytesToSend, &dwNumBytesSent);
+  ftStatus = FT_Write(ftHandle, &message.front(), message.size(), &dwNumBytesSent);
   // send out MPSSE command to MPSSE engine
   ROS_DEBUG_STREAM(dwNumBytesSent << " bytes sent through SPI");
   return ftStatus;
@@ -406,28 +368,12 @@ BOOL SPI_WriteByte(FT_HANDLE ftHandle, WORD bdata)
 FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
 {
   DWORD dwNumBytesSent = 0;
-  DWORD dwNumBytesToSend = 0;
-  BYTE OutputBuffer[USBOUTSIZE];
-  WORD bdata;
+  auto message = encode(buffer, buffer+numwords);
 
-  // Bytes actually sent = data words*2 + 3 Commands*data words + 3
-  // CSenable*data words + 6 CSdisable*data words => 14* Data words
-  for (unsigned int i = 0; i < numwords; i++)
-  {
-    bdata = buffer[i];
-    dwNumBytesToSend = SPI_CSEnable(&OutputBuffer[0], &dwNumBytesToSend);
-    OutputBuffer[dwNumBytesToSend++] =
-        MSB_FALLING_EDGE_OUT_RISING_EDGE_IN_BYTE;             // MSB_RISING_EDGE_OUT_FALLING_EDGE_IN_BYTE;//
-    OutputBuffer[dwNumBytesToSend++] = 1;                     // data length in bytes (low byte)  } +1!!
-    OutputBuffer[dwNumBytesToSend++] = 0;                     // data length in bytes (high byte) }
-    OutputBuffer[dwNumBytesToSend++] = (BYTE)(bdata >> 8);    // output high byte
-    OutputBuffer[dwNumBytesToSend++] = (BYTE)(bdata & 0xff);  // output low byte
-    dwNumBytesToSend = SPI_CSDisable(&OutputBuffer[0], &dwNumBytesToSend, true);
-  }
   FT_STATUS ftStatus = FT_OK;
   do
   {
-    ftStatus = FT_Write(ftHandle, OutputBuffer, dwNumBytesToSend,
+    ftStatus = FT_Write(ftHandle, &message.front(), message.size(),
                         &dwNumBytesSent);  // send out MPSSE command to MPSSE engine
     if (ftStatus != FT_OK)
     {
@@ -436,7 +382,6 @@ FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
       ROS_ERROR_STREAM(" something wrong with FT_Write call, Error code " << errorMessage);
     }
   } while (ftStatus != FT_OK);
-  dwNumBytesToSend = 0;  // Clear output buffer
   return ftStatus;
 }
 

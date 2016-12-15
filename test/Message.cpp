@@ -30,7 +30,10 @@ TEST(Message, add)
 
     Parser<25>{}.add(_a).add(_b).add(_c).add(_d).read(ss);
 
-
+    EXPECT_EQ(a, _a);
+    EXPECT_EQ(b, _b);
+    EXPECT_EQ(c, _c);
+    EXPECT_EQ(d, _d);
 }
 
 // Declare another test
@@ -46,7 +49,7 @@ TEST(Message, adds)
 
     char echo[11];
     int is_life;
-    Parser<11>{}.add(echo).add(is_life).read(ss);
+    Parser<11+sizeof(int)>{}.add(echo).add(is_life).read(ss);
     EXPECT_EQ(std::string(&echo[0], 11), std::string(greeting));
     EXPECT_EQ(life, is_life); // na-naaa naa na naa!
     
