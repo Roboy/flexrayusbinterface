@@ -4,8 +4,8 @@
 #include <vector>
 
 #include <ros/console.h>
-#include "flexrayusbinterface/UsbChannel.hpp"
 #include "flexrayusbinterface/Message.hpp"
+#include "flexrayusbinterface/UsbChannel.hpp"
 #include "ftd2xx.h"
 
 // necessary for MPSSE command
@@ -280,8 +280,6 @@ bool TestMPSSE(FT_HANDLE ftHandle)
 
 bool ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
 {
-  BYTE byOutputBuffer[DATASETSIZE * 2];
-  DWORD dwNumBytesToSend = 0;
   DWORD dwNumBytesSent;
 
   // ------------------------------------------------------------
@@ -290,41 +288,51 @@ bool ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
   // The SK clock frequency can be worked out as follows with divide by 5 set as
   // off:: SK frequency = 60MHz /((1 + [(1 + (0xValueH*256) OR 0xValueL])*2)
 
-  byOutputBuffer[dwNumBytesToSend++] = '\x8A';  // Ensure disable clock divide by 5 for 60Mhz master clock
-  byOutputBuffer[dwNumBytesToSend++] = '\x97';  // Ensure turn off adaptive clocking
-  byOutputBuffer[dwNumBytesToSend++] = '\x8D';  // disable 3 phase data clock
-  FT_STATUS ftStatus;
-  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
-  if (ftStatus != FT_OK)
   {
-    char errorMessage[256];
-    getErrorMessage(ftStatus, errorMessage);
-    ROS_ERROR_STREAM("Error configuring SPI, Error code " << errorMessage);
-    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(ftHandle);                  // Close the USB port
-    return false;
+    std::stringstream ss;
+    // Ensure disable clock divide by 5 for 60Mhz master clock
+    // Ensure turn off adaptive clocking
+    // disable 3 phase data clock
+    Message<3>{}.adds("\x8A\x97\x8D").write(ss);
+    auto output = ss.str();
+    auto ftStatus = FT_Write(ftHandle, &output.front(), output.size(), &dwNumBytesSent);  // Send out the commands
+    if (ftStatus != FT_OK)
+    {
+      char errorMessage[256];
+      getErrorMessage(ftStatus, errorMessage);
+      ROS_ERROR_STREAM("Error configuring SPI, Error code " << errorMessage);
+      FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+      FT_Close(ftHandle);                  // Close the USB port
+      return false;
+    }
   }
 
-  dwNumBytesToSend = 0;                         // Clear output buffer
-  byOutputBuffer[dwNumBytesToSend++] = '\x80';  // Set directions of lower 8 pins, set value on bits set as output
-  byOutputBuffer[dwNumBytesToSend++] = '\x08';  // Set SCK, DO, DI low and CS high
-  byOutputBuffer[dwNumBytesToSend++] = '\x0b';  // Set SK,DO,GPIOL0 pins as output =1, other pins as input=0
-  byOutputBuffer[dwNumBytesToSend++] = '\x86';  // Command to set clock divisor
-  byOutputBuffer[dwNumBytesToSend++] = (BYTE)(dwClockDivisor & '\xFF');  // Set 0xValueL of clock divisor
-  byOutputBuffer[dwNumBytesToSend++] = (BYTE)(dwClockDivisor >> 8);      // Set 0xValueH of clock divisor
-  byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
-  ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send out the commands
-  if (ftStatus != FT_OK)
   {
-    char errorMessage[256];
-    getErrorMessage(ftStatus, errorMessage);
-    ROS_ERROR_STREAM("Error configuring SPI " << errorMessage);
-    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(ftHandle);                  // Close the USB port
-    return false;
+    BYTE divisor_l = dwClockDivisor & '\xFF';
+    BYTE divisor_h = dwClockDivisor >> 8;
+    std::stringstream ss;
+    Message<7>{}
+        .adds("\x80"     // Set directions of lower 8 pins, set value on bits set as output
+              "\x08"     // Set SCK, DO, DI low and CS high
+              "\x0b"     // Set SK,DO,GPIOL0 pins as output =1, other pins as input=0
+              "\x86")    // Command to set clock divisor
+        .add(divisor_l)  // Set 0xValueL of clock divisor
+        .add(divisor_h)  // Set 0xValueH of clock divisor
+        .adds("\x85")    // Command to turn off loop back of TDI/TDO connection
+        .write(ss);
+    auto output = ss.str();
+    auto ftStatus = FT_Write(ftHandle, &output.front(), output.size(), &dwNumBytesSent);  // Send out the commands
+    if (ftStatus != FT_OK)
+    {
+      char errorMessage[256];
+      getErrorMessage(ftStatus, errorMessage);
+      ROS_ERROR_STREAM("Error configuring SPI " << errorMessage);
+      FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+      FT_Close(ftHandle);                  // Close the USB port
+      return false;
+    }
   }
-  dwNumBytesToSend = 0;  // Clear output buffer
-  usleep(100);           // Delay for 100us
+  usleep(100);  // Delay for 100us
   ROS_DEBUG("SPI initialisation successful");
   return true;
 }
@@ -342,7 +350,7 @@ static std::string encode(FirstIterator fst, EndIterator const end)
                      .add(high)
                      .add(low)
                      .adds("\x80\x00\x0b\x80\x08\x0b");
-  static_assert(message.size == 17, "The encoding is incorrect!");  
+  static_assert(message.size == 17, "The encoding is incorrect!");
   for (; fst != end; ++fst)
   {
     auto word = WORD{ *fst };
@@ -368,7 +376,7 @@ BOOL SPI_WriteByte(FT_HANDLE ftHandle, WORD bdata)
 FT_STATUS SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
 {
   DWORD dwNumBytesSent = 0;
-  auto message = encode(buffer, buffer+numwords);
+  auto message = encode(buffer, buffer + numwords);
 
   FT_STATUS ftStatus = FT_OK;
   do
