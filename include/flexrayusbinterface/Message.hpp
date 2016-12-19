@@ -11,6 +11,9 @@ using const_char_arr_ignore_null_t = char const[N - 1];
 template <size_t N>
 using const_char_arr = char const[N];
 
+template<typename T>
+using chain_t = typename std::conditional<std::is_rvalue_reference<T>::value, typename std::remove_reference<T>::type, T>::type;
+
 template <size_t BytesAvailable, typename U, typename W, typename... Chunks>
 class Message<BytesAvailable, U, W, Chunks...>
 {
@@ -39,32 +42,42 @@ public:
   template <typename T>
   auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
-      return add_with_cref(new_chunk);
+    static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to "
+                                                                                          "temporaries.");
+    return add_with_cref(new_chunk);
   }
 
   template <size_t N>
   auto adds(const_char_arr<N> const& str) -> next_t<const_char_arr_ignore_null_t<N>>
   {
-    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the message.");
+    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the "
+                                                                             "message.");
     return { *this, *reinterpret_cast<const_char_arr_ignore_null_t<N>*>(&str) };
   }
 
   template <typename Buffer>
-  auto write_data(Buffer& buffer) -> Buffer&
+  auto write_data(Buffer&& buffer) -> chain_t<Buffer>
   {
-    if (buffer && prev.write_data(buffer))
-      buffer.write(reinterpret_cast<char const*>(&chunk.get()), sizeof(U));
-    return buffer;
+    if (!buffer)
+        return std::forward<Buffer>(buffer);
+    
+    auto&& buffer_with_prev = prev.write_data(std::forward<Buffer>(buffer));
+
+    if (!buffer_with_prev)
+        return std::forward<Buffer>(buffer_with_prev);
+
+    buffer_with_prev.write(reinterpret_cast<char const*>(&chunk.get()), sizeof(U));
+    return std::forward<Buffer>(buffer_with_prev);
   }
 
   template <typename Buffer>
-  auto write(Buffer& buffer) -> Buffer&
+  auto write(Buffer&& buffer) -> chain_t<Buffer>
   {
-    if (write_data(buffer))
-      for (auto i = 0; (i < BytesAvailable) && buffer.put(0); ++i)
-        ;
-    return buffer;
+    auto&& buffer_with_data = write_data(std::forward<Buffer>(buffer));
+    buffer_with_data.width(BytesAvailable);
+    buffer_with_data.fill('\0');
+    buffer_with_data << "";
+    return std::forward<Buffer>(buffer_with_data);
   }
 };
 
@@ -93,31 +106,34 @@ public:
   template <typename T>
   auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
-      return add_with_cref(new_chunk);
+    static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to "
+                                                                                          "temporaries.");
+    return add_with_cref(new_chunk);
   }
 
   template <size_t N>
   auto adds(const_char_arr<N> const& str) -> next_t<const_char_arr_ignore_null_t<N>>
   {
-    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the message.");
+    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the "
+                                                                             "message.");
     return { *this, *reinterpret_cast<const_char_arr_ignore_null_t<N>*>(&str) };
   }
 
   template <typename Buffer>
-  auto write_data(Buffer& buffer) -> Buffer&
+  auto write_data(Buffer&& buffer) -> chain_t<Buffer>
   {
     buffer.write(reinterpret_cast<char const*>(&chunk.get()), sizeof(U));
-    return buffer;
+    return std::forward<Buffer>(buffer);
   }
 
   template <typename Buffer>
-  auto write(Buffer& buffer) -> Buffer&
+  auto write(Buffer&& buffer) -> chain_t<Buffer>
   {
-    write_data(buffer);
-    for (auto i = 0; i < BytesAvailable; ++i)
-      buffer.put(0);
-    return buffer;
+    auto&& buffer_with_data = write_data(std::forward<Buffer>(buffer));
+    buffer_with_data.width(BytesAvailable);
+    buffer_with_data.fill('\0');
+    buffer_with_data << "";
+    return std::forward<Buffer>(buffer_with_data);
   }
 };
 
@@ -140,23 +156,26 @@ public:
   template <typename T>
   auto add(T&& new_chunk) -> next_t<typename std::decay<T>::type>
   {
-      static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to temporaries.");
-      return add_with_cref(new_chunk);
+    static_assert(!std::is_rvalue_reference<decltype(std::forward<T>(new_chunk))>::value, "Cannot bind to "
+                                                                                          "temporaries.");
+    return add_with_cref(new_chunk);
   }
 
   template <size_t N>
   auto adds(const_char_arr<N> const& str) -> next_t<const_char_arr_ignore_null_t<N>>
   {
-    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the message.");
+    static_assert(BytesAvailable >= sizeof(const_char_arr_ignore_null_t<N>), "There is not enough room in the "
+                                                                             "message.");
     return { *reinterpret_cast<const_char_arr_ignore_null_t<N>*>(&str) };
   }
 
   template <typename Buffer>
-  auto write(Buffer& buffer) -> Buffer&
+  auto write(Buffer&& buffer) -> chain_t<Buffer>
   {
-    for (auto i = 0; i < BytesAvailable; ++i)
-      buffer.put(0);
-    return buffer;
+    buffer.width(BytesAvailable);
+    buffer.fill('\0');
+    buffer<< "";
+    return std::forward<Buffer>(buffer);
   }
 };
 

@@ -51,7 +51,7 @@ TEST(Message, adds)
   EXPECT_EQ(life, is_life);  // na-naaa naa na naa!
 }
 
-TEST(Message, encoding)
+TEST(Message, temporary_stream)
 {
   unsigned char MSB = 0;
   char low = 'l';
@@ -63,10 +63,14 @@ TEST(Message, encoding)
                      .add(high)
                      .add(low)
                      .adds("\x80\x00\x0b\x80\x08\x0b");
-  std::stringstream nss;
-  message.write(nss);
-  EXPECT_EQ(std::string("\x80\x00\x0b\x80\x00\x0b\x00\x01\x00hl\x80\x00\x0b\x80\x08\x0b", 17),
-            nss.str());
+  EXPECT_EQ(std::string("\x80\x00\x0b\x80\x00\x0b"
+                        "\x00"
+                        "\x01\x00"
+                        "hl"
+                        "\x80\x00\x0b\x80\x08\x0b", 17),
+            message.write(std::stringstream{}).str());
+  EXPECT_EQ(Message<10>{}.write(std::stringstream{}).str(), std::string(10, '\0'));
+  EXPECT_EQ(Message<10>{}.adds("hello").write(std::stringstream{}).str(), std::string("hello") + std::string(5, '\0'));
 }
 
 int main(int argc, char **argv)
