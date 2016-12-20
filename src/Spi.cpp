@@ -246,35 +246,26 @@ bool TestMPSSE(FT_HANDLE ftHandle)
   } while ((dwNumBytesToRead == 0) && (ftStatus == FT_OK) &&
            (counter < 100));  // wait for bytes to return, an error or Timeout
 
-  bool bCommandEchod = false;
-  if (dwNumBytesToRead)
-  {
-    ftStatus = FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead);  // Read the data from input buffer
-    for (DWORD dwCount = 0; dwCount < dwNumBytesRead - 1;
-         dwCount++)  // Check if Bad command and echo command are received
-    {
-      if ((byInputBuffer[dwCount] == 0xFA) && (byInputBuffer[dwCount + 1] == 0xAB))
-      {
-        bCommandEchod = true;
-        break;
-      }
-    }
-  }
+  if (!dwNumBytesToRead)
+    return false;
+  ftStatus = FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead);  // Read the data from input buffer
+  auto received_echo = std::adjacent_find(&byInputBuffer[0], std::next(&byInputBuffer[0], dwNumBytesRead),
+                                          [](BYTE left, BYTE right) { return left == 0xFA && right == 0xAB; });
 
-  if (bCommandEchod == false)
-  {
-    ROS_ERROR("Error in synchronizing the MPSSE");
-    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
-    FT_Close(ftHandle);                  // Close the USB port
-    return false;                        // Exit with error
-  }
-  else
+  if (received_echo)
   {
     ROS_DEBUG("MPSSE synchronised.");
     byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
     ftStatus = FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent);  // Send off the loopback command
     dwNumBytesToSend = 0;                                                              // Reset output buffer pointer
     return true;
+  }
+  else
+  {
+    ROS_ERROR("Error in synchronizing the MPSSE");
+    FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                  // Close the USB port
+    return false;                        // Exit with error
   }
 }
 
@@ -351,13 +342,11 @@ static std::string encode(FirstIterator fst, EndIterator const end)
                      .add(low)
                      .adds("\x80\x00\x0b\x80\x08\x0b");
   static_assert(message.size == 17, "The encoding is incorrect!");
-  for (; fst != end; ++fst)
-  {
-    auto word = WORD{ *fst };
+  std::for_each(fst, end, [&](WORD word) {
     high = word >> 8;
     low = word & 0xff;
     message.write(ss);
-  }
+  });
   return ss.str();
 }
 

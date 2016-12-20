@@ -22,13 +22,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
   command.params.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
   command.params.params.pidParameters.lastError = 0;                        // float32
 
-  for (auto& frame : command.frame)
-  {
-    for (uint32_t j = 0; j < 4; j++)
-    {
-      frame.sp[j] = 0;
-    }
-  }
+  for (auto& frame : command.frame) std::fill_n(&frame.sp[0], 4, 0);
   initForceControl();
 
   auto ganglions = exchangeData();
@@ -357,22 +351,16 @@ void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, 
 void FlexRayHardwareInterface::init(comsControllerMode mode)
 {
   // initialize PID controller in motordriver boards
-  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS; i++)
+  for (auto& frame: command.frame)
   {
-    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
-    {
-      command.frame[i].ControlMode[motor] = mode;
-      command.frame[i].OperationMode[motor] = Initialise;
-    }
+      std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), mode);
+      std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Initialise);
   }
   exchangeData();
-  for (uint32_t i = 0; i < NUMBER_OF_GANGLIONS; i++)
+  for (auto& frame: command.frame)
   {
-    for (uint32_t motor = 0; motor < NUMBER_OF_JOINTS_PER_GANGLION; motor++)
-    {
-      command.frame[i].OperationMode[motor] = Run;
-      command.frame[i].sp[motor] = 0;
-    }
+      std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), 0);
+      std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Run);
   }
   exchangeData();
 }
