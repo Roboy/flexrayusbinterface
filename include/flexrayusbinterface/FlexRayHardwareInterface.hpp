@@ -23,14 +23,6 @@ public:
     Hard
   };
 
-  enum class RecordingAction
-  {
-    Stop,
-    Play,
-    Pause,
-    Rewind
-  };
-
   /**
   * This function resets the sensor displacement of one motor
   */
