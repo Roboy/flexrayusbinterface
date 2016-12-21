@@ -6,12 +6,6 @@
 #include <bitset>
 #include "flexrayusbinterface/Spi.hpp"
 
-struct UsbError
-{
-  FT_STATUS status;
-};
-
-
 class UsbChannel
 {
   FT_HANDLE handle;
@@ -75,7 +69,7 @@ public:
 
   static auto connect() -> boost::optional<Connected>;
 
-  FT_STATUS write(std::vector<WORD> const& data) const;
-  auto read(std::string buffer) const -> variant<std::string, UsbError>;
-  auto bytes_available() const -> variant<DWORD, UsbError>;
+  void write(std::vector<WORD> const& data) const;
+  auto read(std::string buffer) const -> variant<std::string, FtResult>;
+  auto bytes_available() const -> variant<DWORD, FtResult>;
 };

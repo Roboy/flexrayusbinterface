@@ -22,7 +22,8 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
   command.params.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
   command.params.params.pidParameters.lastError = 0;                        // float32
 
-  for (auto& frame : command.frame) std::fill_n(&frame.sp[0], 4, 0);
+  for (auto& frame : command.frame)
+    std::fill_n(&frame.sp[0], 4, 0);
   initForceControl();
 
   auto ganglions = exchangeData();
@@ -238,40 +239,30 @@ void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t moto
 std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 {
   uint32_t activeGanglionsMask = 0;
-  FT_STATUS ftStatus;
   std::vector<WORD> buffer(DATASETSIZE, 0);
   std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD), std::begin(buffer));
 
-  ftStatus = usb.write(buffer);
-  if (ftStatus != FT_OK)
+  usb.write(buffer);
+  // WAIT FOR DATA TO ARRIVE
+  ROS_DEBUG("waiting for data");
+  while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
+                                     [](FtResult error) {
+                                       ROS_ERROR_STREAM("exchange data failed with error " << error.str());
+                                       return 0;
+                                     }) < DATASETSIZE * sizeof(WORD))
   {
-    ROS_ERROR_STREAM("Failed to Send a byte through SPI, Error Code: " << ftStatus);
   }
-  else
-  {
-    // WAIT FOR DATA TO ARRIVE
-    ROS_DEBUG("waiting for data");
-    while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
-                                       [](UsbError error) {
-                                         char errorMessage[256];
-                                         getErrorMessage(error.status, errorMessage);
-                                         ROS_ERROR_STREAM("exchange data failed with error " << errorMessage);
-                                         return 0;
-                                       }) < DATASETSIZE * sizeof(WORD))
-    {
-    }
-    ROS_DEBUG("reading data");
-    auto input = usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'));
-    input.match(
-        [this, &activeGanglionsMask](std::string& data) {
-          std::stringstream buffer;
-          WORD ganglions;
-          buffer.str(data);
-          Parser<DATASETSIZE * sizeof(WORD)>{}.add(GanglionData).add(ganglions).read(buffer);
-          activeGanglionsMask = ganglions;
-        },
-        [](UsbError) {});
-  }
+  ROS_DEBUG("reading data");
+  usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'))
+      .match(
+          [this, &activeGanglionsMask](std::string& data) {
+            std::stringstream buffer;
+            WORD ganglions;
+            buffer.str(data);
+            Parser<DATASETSIZE * sizeof(WORD)>{}.add(GanglionData).add(ganglions).read(buffer);
+            activeGanglionsMask = ganglions;
+          },
+          [](FtResult) {});
   return activeGanglionsMask;
 }
 
@@ -351,16 +342,16 @@ void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, 
 void FlexRayHardwareInterface::init(comsControllerMode mode)
 {
   // initialize PID controller in motordriver boards
-  for (auto& frame: command.frame)
+  for (auto& frame : command.frame)
   {
-      std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), mode);
-      std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Initialise);
+    std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), mode);
+    std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Initialise);
   }
   exchangeData();
-  for (auto& frame: command.frame)
+  for (auto& frame : command.frame)
   {
-      std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), 0);
-      std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Run);
+    std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), 0);
+    std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Run);
   }
   exchangeData();
 }
