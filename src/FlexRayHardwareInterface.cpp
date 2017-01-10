@@ -7,10 +7,9 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
+#include <sstream>
 
 #include "flexrayusbinterface/Message.hpp"
-// ros
-#include <ros/console.h>
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(channel)
 {
@@ -26,8 +25,7 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
     std::fill_n(&frame.sp[0], 4, 0);
   initForceControl();
 
-  auto ganglions = exchangeData();
-  ROS_INFO_STREAM(ganglions.count() << " ganglions are connected via flexray, activeGanglionsMask " << ganglions);
+  exchangeData();
 };
 
 auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInterface>
@@ -46,33 +44,25 @@ auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInter
             {
               if (auto usb = mpsse->configure_spi())
               {
-                ROS_INFO("connection OK");
                 return FlexRayHardwareInterface(*usb);
               }
             }
           }
           else
           {
-            ROS_INFO("Testing MPSSE failed, retrying!");
           }
         }
       }
       else
       {
-        ROS_ERROR("open port failed\n--Perhaps the kernel automatically loaded "
-                  "another driver for the FTDI USB device, from command line "
-                  "try: \nsudo rmmod ftdi_sio \n sudo rmmod usbserial\n or "
-                  "maybe run with sudo");
       }
     }
     else
     {
-      ROS_ERROR("device info failed");
     }
   }
   else
   {
-    ROS_ERROR("device not connected");
   }
   return boost::none;
 };
@@ -94,7 +84,6 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
   exchangeData();
   tendonDisplacement_t[0] =
       GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
-  ROS_INFO("Displacement_t0 %.5f     ", tendonDisplacement_t[0]);
   uint32_t i = 1;
   for (i = 1; i < 3; i++)
   {
@@ -104,12 +93,10 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     usleep(500000);
     exchangeData();
     tendonDisplacement_t[i] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
-    ROS_INFO("Displacement_t%d %.5f ", i, tendonDisplacement_t[i]);
   }
 
   uint32_t t = 0;
   tendonDisplacement_t2[0] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
-  ROS_INFO("Displacement_t20 %.5f ", tendonDisplacement_t2[t]);
 
   if (tendonDisplacement_t[2] < tendonDisplacement_t[0])
     vel = 3;
@@ -126,7 +113,6 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     exchangeData();
     tendonDisplacement_t2[t + 1] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
     t++;
-    ROS_INFO("Displacement_t2 %d %.5f ", t, tendonDisplacement_t2[t]);
 
     if (tendonDisplacement_t2[t] > tendonDisplacement_t2[t - 1])
       p++;
@@ -158,12 +144,10 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
 
     command.params.tag = 1;
     command.frame[0].OperationMode[0] = Initialise;
-    ROS_INFO("Tag = %d ", command.params.tag);
 
     exchangeData();
     command.params.tag = 0;
     command.frame[0].OperationMode[0] = Initialise;
-    ROS_INFO("Tag = %d ", command.params.tag);
     exchangeData();
 
     switch (controlmode)
@@ -244,15 +228,12 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 
   usb.write(buffer);
   // WAIT FOR DATA TO ARRIVE
-  ROS_DEBUG("waiting for data");
   while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
                                      [](FtResult error) {
-                                       ROS_ERROR_STREAM("exchange data failed with error " << error.str());
                                        return 0;
                                      }) < DATASETSIZE * sizeof(WORD))
   {
   }
-  ROS_DEBUG("reading data");
   usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'))
       .match(
           [this, &activeGanglionsMask](std::string& data) {

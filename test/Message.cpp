@@ -72,9 +72,3 @@ TEST(Message, temporary_stream)
   EXPECT_EQ(Message<10>{}.write(std::stringstream{}).str(), std::string(10, '\0'));
   EXPECT_EQ(Message<10>{}.adds("hello").write(std::stringstream{}).str(), std::string("hello") + std::string(5, '\0'));
 }
-
-int main(int argc, char **argv)
-{
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

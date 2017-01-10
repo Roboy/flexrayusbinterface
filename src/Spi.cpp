@@ -1,9 +1,9 @@
 #include "flexrayusbinterface/Spi.hpp"
 
 #include <cstdlib>
+#include <sstream>
 #include <vector>
 
-#include <ros/console.h>
 #include "flexrayusbinterface/Message.hpp"
 #include "flexrayusbinterface/UsbChannel.hpp"
 #include "ftd2xx.h"
@@ -27,60 +27,32 @@ FtResult CheckDeviceConnected(DWORD* NumDevs)
   // -----------------------------------------------------------
   // Does an FTDI device exist?
   // -----------------------------------------------------------
-  ROS_DEBUG("Checking for FTDI devices...");
 
   TRY(FtResult{ FT_CreateDeviceInfoList(NumDevs) }.or_else([](FtResult error) {
-    ROS_ERROR_STREAM("Error in getting the number of devices: " << error.str());
     return error;  // Exit with error
   }));
   if (*NumDevs < 1)  // Exit if we don't see any
   {
-    ROS_WARN("There are no FTDI devices installed");
     return FtResult::Message::OTHER_ERROR;  // Exit with error
   }
-  ROS_DEBUG_STREAM(*NumDevs << " FTDI devices found-the count includes "
-                               "individual ports on a single chip");
   return FtResult::Message::OK;
 }
 
 FtResult GetDeviceInfo(DWORD* NumDevs)
 {
   FT_DEVICE_LIST_INFO_NODE* devInfo;
-  auto log_error = [](FtResult result, char const* message = "Could not find info for devices: ") {
-    ROS_ERROR_STREAM(message << result.str());
-    return result;
-  };
 
   // ------------------------------------------------------------
   // If yes then print details of devices
   // ------------------------------------------------------------
   devInfo = (FT_DEVICE_LIST_INFO_NODE*)malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * (*NumDevs));
-  TRY(FtResult{ FT_GetDeviceInfoList(devInfo, NumDevs) }.or_else(log_error));
-
-  ROS_INFO_STREAM(*NumDevs << " devices ");
-  for (unsigned int i = 0; i < *NumDevs; i++)
-  {
-    ROS_INFO_STREAM(" Dev: " << i);
-    ROS_INFO_STREAM(" Flags=0x" << devInfo[i].Flags);
-    ROS_INFO_STREAM(" Type=0x" << devInfo[i].Type);
-    ROS_INFO_STREAM(" ID=0x" << devInfo[i].ID);
-    ROS_INFO_STREAM(" LocId=0x" << devInfo[i].LocId);
-    ROS_INFO_STREAM(" SerialNumber=" << devInfo[i].SerialNumber);
-    ROS_INFO_STREAM(" Description=" << devInfo[i].Description);
-    ROS_INFO_STREAM(" ftHandle=0x" << devInfo[i].ftHandle);
-  }
+  TRY(FtResult{ FT_GetDeviceInfoList(devInfo, NumDevs) });
   return FtResult::Message::OK;
 }
 
 FtResult OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
 {
   // Configure port parameters
-  ROS_DEBUG("Configuring port for MPSSE use");
-  auto log_error = [](FtResult result, char const* message = "Error in initializing the MPSSE on device. Error: ") {
-    ROS_ERROR_STREAM(message << result.str());
-    return result;
-  };
-
   DWORD InTransferSize = USBINSIZE;
   DWORD OutTransferSize = USBOUTSIZE;
   DWORD dwNumBytesToRead, dwNumBytesRead;
@@ -89,16 +61,15 @@ FtResult OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
   // -----------------------------------------------------------
   // Open the port on first device located
   // -----------------------------------------------------------
-  TRY(FtResult{ FT_Open(0, ftHandle) }.or_else(log_error, "Failed to open: "));
+  TRY(FtResult{ FT_Open(0, ftHandle) });
 
-  ROS_DEBUG("Port opened");
 
   // ------------------------------------------------------------
   // Configure MPSSE and test for synchronisation
   // ------------------------------------------------------------
 
-  TRY(FtResult{ FT_ResetDevice(*ftHandle) }.or_else(log_error));                        // Reset USB device
-  TRY(FtResult{ FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead) }.or_else(log_error));  // Purge USB receive buffer
+  TRY(FtResult{ FT_ResetDevice(*ftHandle) });                        // Reset USB device
+  TRY(FtResult{ FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead) });  // Purge USB receive buffer
                                                                                         // first by
   // reading out all old data from FT2232H
   // receive buffer
@@ -106,82 +77,27 @@ FtResult OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
   // Get the number of bytes in the FT2232H receive buffer
   if ((dwNumBytesToRead > 0))  // Read out the data from FT2232H receive buffer if not empty
     TRY(FtResult{ FT_Read(*ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead) });
-  else
-    ROS_WARN("Buffer empty");
 
-  // FtResult{FT_SetUSBParameters(ftHandle, 65536, 65535)}.or_else(log_error);  // Set USB
   // request transfer sizes to 64K
-  TRY(FtResult{ FT_SetUSBParameters(*ftHandle, InTransferSize, OutTransferSize) }.or_else(
-      log_error));  // Set USB request transfer
-                    // sizes...page 73 d2XX
-                    // programmer guide (only
-                    // dwInTransferSize has been
-                    // implemented)
-                    /*  FT_STATUS FT_SetUSBParameters(FT_HANDLE ftHandle, DWORD dwInTransferSize,
-                     DWORD dwOutTransferSize)
-                     (only dwInTransferSize currently supported..test this...see d2XX programmers
-                     guide p 73)
-                     */
-  TRY(FtResult{ FT_SetChars(*ftHandle, false, 0, false, 0) }.or_else(log_error));  // Disable event and error characters
-  /*  FT_STATUS FT_SetChars (FT_HANDLE ftHandle, UCHAR uEventCh, UCHAR
-   uEventChEn,UCHAR uErrorCh, UCHAR uErrorChEn)
-   (uEventCh = event character, uEventChEn = enable event character insertion,
-   uErrorCh = error character, ...)
-   */
-  // FtResult{FT_SetTimeouts(ftHandle, 3000, 3000)}.or_else(log_error);         // Sets the read
-  // and write timeouts in milliseconds
-  TRY(FtResult{ FT_SetTimeouts(*ftHandle, 300, 300) }.or_else(log_error));  // Sets the read and write timeouts in
+  // Set USB request transfer sizes...page 73 d2XX programmer guide
+  // (only dwInTransferSize has been implemented)
+  TRY(FtResult{ FT_SetUSBParameters(*ftHandle, InTransferSize, OutTransferSize) }); 
+  TRY(FtResult{ FT_SetChars(*ftHandle, false, 0, false, 0) });  // Disable event and error characters
+  TRY(FtResult{ FT_SetTimeouts(*ftHandle, 300, 300) });  // Sets the read and write timeouts in
                                                                             // milliseconds
-  /*  FT_STATUS FT_SetTimeouts (FT_HANDLE ftHandle, DWORD dwReadTimeout, DWORD
-   dwWriteTimeout)
-   (dwReadTimeout, dwWriteTimeout in ms)
-   */
-  TRY(FtResult{ FT_SetLatencyTimer(*ftHandle, 1) }.or_else(log_error));  // Set the latency timer to 1mS (default is
+  TRY(FtResult{ FT_SetLatencyTimer(*ftHandle, 1) });  // Set the latency timer to 1mS (default is
                                                                          // 16mS)
-  /*  FT_STATUS FT_SetLatencyTimer (FT_HANDLE ftHandle, UCHAR ucTimer)
-   (ucTimer = require latency value in milliseconds [range of 2-255 page 68 of
-   d2XX programmers guide?])
-   */
-  // FtResult{FT_SetFlowControl(ftHandle, FT_FLOW_RTS_CTS, 0x00, 0x00)}.or_else(log_error);
-  // Turn on flow control to synchronize IN requests
-  /*  FT_STATUS FT_SetFlowControl (FT_HANDLE ftHandle, USHORT usFlowControl,
-   UCHAR uXon, UCHAR uXoff)
-   (usFlowControl must be either FT_FLOW_NONE, FT_FLOW_RTS_CTS, FT_FLOW_DTR_DSR
-   or FT_FLOW_XON_XOFF)
-   (uXon = character to signal Xon [Only used is set to FT_FLOW_XON_XOFF])
-   (uXoff = character to signal Xoff [Only used is set to FT_FLOW_XON_XOFF])
-   */
-  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x00) }.or_else(log_error));  // Reset controller
-  /*  FT_STATUS FT_SetBitmode (FT_HANDLE ftHandle, UCHAR ucMask, UCHAR ucMode)
-   (ucMask sets which bits are inputs [=0] or outputs [=1])
-   (ucMode can one of the following:
-   0x0 = Reset
-   0x1 = Asynchronous Bit Bang
-   0x2 = MPSSE (FT2232, FT2232H, FT4232H and FT232H devices only)
-   0x4 = Synchronous Bit Bang (FT232R, FT245R, FT2232, FT2232H, FT4232H and
-   FT232H devices only)
-   0x8 = MCU Host Bus Emulation Mode (FT2232, FT2232H, FT4232H and FT232H
-   devices only)
-   0x10 = Fast Opto-Isolated Serial Mode (FT2232, FT2232H, FT4232H and FT232H
-   devices only)
-   0x20 = CBUS Bit Bang Mode (FT232R and FT232H devices only)
-   0x40 = Single Channel Synchronous 245 FIFO Mode (FT2232H and FT232H devices
-   only)
-   )
-
-   */
-  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x02) }.or_else(log_error));  // Enable MPSSE mode
+  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x00) });  // Reset controller
+  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x02) });  // Enable MPSSE mode
 
   usleep(1);  // Wait for all the USB stuff to complete and work
 
-  ROS_INFO("MPSSE ready for commands");
   return FtResult::Message::OK;
 }
 
 FtResult TestMPSSE(FT_HANDLE ftHandle)
 {
-  auto log_error = [&ftHandle](FtResult error, char const* message = "") {
-    ROS_FATAL_STREAM(message << error.str());
+  auto disable_mpsse = [&ftHandle](FtResult error) {
     FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
     FT_Close(ftHandle);                  // Close the USB port
     return error;
@@ -201,48 +117,44 @@ FtResult TestMPSSE(FT_HANDLE ftHandle)
   // Enable internal loop-back
   byOutputBuffer[dwNumBytesToSend++] = 0x84;  // Enable loopback
   TRY(FtResult{ FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent) }.or_else(
-      log_error));       // Send off the loopback command
+      disable_mpsse));       // Send off the loopback command
   dwNumBytesToSend = 0;  // Reset output buffer pointer
 
   // Check the receive buffer - it should be empty
-  TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(log_error));  // Get the number
+  TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(disable_mpsse));  // Get the number
                                                                                        // of bytes in the
                                                                                        // FT2232H receive
                                                                                        // buffer
   if (dwNumBytesToRead != 0)
-    return log_error(FtResult::Message::OTHER_ERROR, "Error - MPSSE receive buffer should be empty, try to run again!");
-
-  ROS_DEBUG("Internal loop-back configured and receive buffer is empty");
+    return disable_mpsse(FtResult::Message::OTHER_ERROR);
 
   // send bad op-code to check every thing is working correctly
   byOutputBuffer[dwNumBytesToSend++] = 0xAB;  // Add bogus command ‘0xAB’ to the queue
   TRY(FtResult{ FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent) }.or_else(
-      log_error));       // Send off the BAD command
+      disable_mpsse));       // Send off the BAD command
   dwNumBytesToSend = 0;  // Reset output buffer pointer
 
   for (uint32_t counter = 0; (counter < 100) && (dwNumBytesToRead == 0); ++counter)
-    TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(log_error));  // Get the number of
+    TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(disable_mpsse));  // Get the number of
                                                                                          // bytes in the device
                                                                                          // input buffer
 
   if (!dwNumBytesToRead)
     return FtResult::Message::OTHER_ERROR;
   TRY(FtResult{ FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead) }.or_else(
-      log_error));  // Read the data from input buffer
+      disable_mpsse));  // Read the data from input buffer
   auto received_echo = std::adjacent_find(&byInputBuffer[0], std::next(&byInputBuffer[0], dwNumBytesRead),
                                           [](BYTE left, BYTE right) { return left == 0xFA && right == 0xAB; });
 
   if (received_echo)
   {
-    ROS_DEBUG("MPSSE synchronised.");
     byOutputBuffer[dwNumBytesToSend++] = '\x85';  // Command to turn off loop back of TDI/TDO connection
     TRY(FtResult{ FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent) }.or_else(
-        log_error));  // Send off the loopback command
+        disable_mpsse));  // Send off the loopback command
     return FtResult::Message::OK;
   }
   else
   {
-    ROS_ERROR("Error in synchronizing the MPSSE");
     FT_SetBitMode(ftHandle, 0x0, 0x00);     // Reset the port to disable MPSSE
     FT_Close(ftHandle);                     // Close the USB port
     return FtResult::Message::OTHER_ERROR;  // Exit with error
@@ -253,7 +165,6 @@ FtResult ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
 {
   DWORD dwNumBytesSent;
   auto cleanup = [&ftHandle](FtResult error) {
-    ROS_ERROR_STREAM("Error configuring SPI, Error code " << error.str());
     FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
     FT_Close(ftHandle);                  // Close the USB port
     return error;
@@ -294,7 +205,6 @@ FtResult ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
         cleanup));  // Send out the commands
   }
   usleep(100);  // Delay for 100us
-  ROS_DEBUG("SPI initialisation successful");
   return FtResult::Message::OK;
 }
 
@@ -328,7 +238,6 @@ void SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
   auto write = [&]() {
     FtResult result{ FT_Write(ftHandle, &message.front(), message.size(), &dwNumBytesSent) };
     return result.or_else([](FtResult error) {
-      ROS_ERROR_STREAM(" something wrong with FT_Write call, Error code " << error.str());
       return error;
     });
   };

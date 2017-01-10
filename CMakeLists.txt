@@ -13,10 +13,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11")
 #==============================================================================
 # Dependencies
 #==============================================================================
-find_package(catkin REQUIRED COMPONENTS
-    common_utilities
-    rosconsole
-    roscpp)
+find_package(catkin REQUIRED COMPONENTS)
 
 find_package (PkgConfig REQUIRED)
 
@@ -29,36 +26,28 @@ find_package ( Mapbox REQUIRED )
 # libftd2xx driver lib
 find_package(libftd2xx REQUIRED)
 
-# pthread
-find_package (Threads)
-
-catkin_package(DEPENDS Boost Mapbox
+catkin_package(DEPENDS Boost
         INCLUDE_DIRS include
-        CATKIN_DEPENDS common_utilities roscpp rosconsole
         LIBRARIES libflexrayusbinterface
-        DEPENDS libftd2xx)
+        DEPENDS libftd2xx Mapbox)
 
 
-INCLUDE_DIRECTORIES(    include
-                        ../common_utilities/include
-                        ${libftd2xx_INCLUDE_DIRS}
-                        ${Mapbox_INCLUDE_DIRS}
-                        ${Boost_INCLUDE_DIR}
-                        ${catkin_INCLUDE_DIRS}
-                        )
+include_directories(
+    include
+    ${libftd2xx_INCLUDE_DIRS}
+    ${Mapbox_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIR}
+    )
 
 #==============================================================================
 # Application
 #==============================================================================
-add_library ( libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
-add_dependencies(libflexrayusbinterface std_msgs_generate_messages_cpp common_utilities_generate_messages_cpp)
-target_link_libraries( libflexrayusbinterface
-                        ${Boost_LIBRARIES}
-                        ${libftd2xx_LIBRARY}
-                        ${CMAKE_THREAD_LIBS_INIT}
-                        ${ROSCONSOLE_LIBRARIES}
-                        ${catkin_LIBRARIES}
-                        -ldl
+add_library(libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
+target_link_libraries(
+    libflexrayusbinterface
+    ${Boost_LIBRARIES}
+    ${libftd2xx_LIBRARY}
+    -ldl
 )
 #==============================================================================
 # Installation
@@ -68,4 +57,5 @@ install(TARGETS
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         )
 
-catkin_add_gtest(message test/Message.cpp)
+file(GLOB TEST_SOURCE_FILES test/*.cpp)
+catkin_add_gtest(unit_tests ${TEST_SOURCE_FILES})

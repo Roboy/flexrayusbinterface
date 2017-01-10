@@ -1,9 +1,11 @@
 #pragma once
 
+#include <bitset>
+#include <vector>
+
 #include <boost/optional.hpp>
 #include <mapbox/variant.hpp>
 
-#include <bitset>
 #include "flexrayusbinterface/Spi.hpp"
 
 class UsbChannel
