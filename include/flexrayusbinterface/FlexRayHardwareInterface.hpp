@@ -4,6 +4,7 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -82,7 +83,7 @@ public:
   /**
    * Measure connection time via multiple calls to exchangeData()
    */
-  double measureConnectionTime();
+  std::chrono::duration<double> measureConnectionTime(uint32_t iterations);
 
   struct
   {

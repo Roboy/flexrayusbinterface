@@ -2,12 +2,11 @@
 
 #include <string.h>
 #include <unistd.h>
-#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <utility>
 #include <sstream>
+#include <utility>
 
 #include "flexrayusbinterface/Message.hpp"
 
@@ -31,39 +30,13 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
 auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInterface>
 {
   if (auto connection = UsbChannel::connect())
-  {
     if (auto device = connection->get_device())
-    {
       if (auto channel = device->open())
-      {
         for (auto tries = 0; tries < 3; ++tries)
-        {
           if (auto mpsse = channel->configure_mpsse())
-          {
             for (;;)
-            {
               if (auto usb = mpsse->configure_spi())
-              {
                 return FlexRayHardwareInterface(*usb);
-              }
-            }
-          }
-          else
-          {
-          }
-        }
-      }
-      else
-      {
-      }
-    }
-    else
-    {
-    }
-  }
-  else
-  {
-  }
   return boost::none;
 };
 
@@ -229,7 +202,7 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
   usb.write(buffer);
   // WAIT FOR DATA TO ARRIVE
   while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
-                                     [](FtResult error) {
+                                     [](FtResult) {
                                        return 0;
                                      }) < DATASETSIZE * sizeof(WORD))
   {
@@ -247,22 +220,15 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
   return activeGanglionsMask;
 }
 
-double FlexRayHardwareInterface::measureConnectionTime()
+std::chrono::duration<double> FlexRayHardwareInterface::measureConnectionTime(uint32_t iterations)
 {
-  std::ofstream file;
-  file.open("measureConnectionTime.log");
   auto start = std::chrono::high_resolution_clock::now();
-  for (uint32_t i = 0; i < 1000; i++)
+  for (uint32_t i = 0; i < iterations; i++)
   {
     exchangeData();
   }
-  auto elapsed = start - std::chrono::high_resolution_clock::now();
-  auto average = std::chrono::duration_cast<std::chrono::duration<double>>(elapsed).count() / 1000;
-  file << "Measured runtime for 1000 updateCommandFrame() + exchangeData() "
-          "calls\n";
-  file << "average time: " << average << " seconds" << std::endl;
-  file.close();
-  return average;
+  std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
+  return elapsed / iterations;
 }
 
 void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, float forwardGain, float deadBand,

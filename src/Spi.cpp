@@ -63,14 +63,13 @@ FtResult OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
   // -----------------------------------------------------------
   TRY(FtResult{ FT_Open(0, ftHandle) });
 
-
   // ------------------------------------------------------------
   // Configure MPSSE and test for synchronisation
   // ------------------------------------------------------------
 
   TRY(FtResult{ FT_ResetDevice(*ftHandle) });                        // Reset USB device
   TRY(FtResult{ FT_GetQueueStatus(*ftHandle, &dwNumBytesToRead) });  // Purge USB receive buffer
-                                                                                        // first by
+                                                                     // first by
   // reading out all old data from FT2232H
   // receive buffer
   //
@@ -81,14 +80,14 @@ FtResult OpenPortAndConfigureMPSSE(FT_HANDLE* ftHandle)
   // request transfer sizes to 64K
   // Set USB request transfer sizes...page 73 d2XX programmer guide
   // (only dwInTransferSize has been implemented)
-  TRY(FtResult{ FT_SetUSBParameters(*ftHandle, InTransferSize, OutTransferSize) }); 
+  TRY(FtResult{ FT_SetUSBParameters(*ftHandle, InTransferSize, OutTransferSize) });
   TRY(FtResult{ FT_SetChars(*ftHandle, false, 0, false, 0) });  // Disable event and error characters
-  TRY(FtResult{ FT_SetTimeouts(*ftHandle, 300, 300) });  // Sets the read and write timeouts in
-                                                                            // milliseconds
-  TRY(FtResult{ FT_SetLatencyTimer(*ftHandle, 1) });  // Set the latency timer to 1mS (default is
-                                                                         // 16mS)
-  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x00) });  // Reset controller
-  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x02) });  // Enable MPSSE mode
+  TRY(FtResult{ FT_SetTimeouts(*ftHandle, 300, 300) });         // Sets the read and write timeouts in
+                                                                // milliseconds
+  TRY(FtResult{ FT_SetLatencyTimer(*ftHandle, 1) });            // Set the latency timer to 1mS (default is
+                                                                // 16mS)
+  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x00) });         // Reset controller
+  TRY(FtResult{ FT_SetBitMode(*ftHandle, 0x0, 0x02) });         // Enable MPSSE mode
 
   usleep(1);  // Wait for all the USB stuff to complete and work
 
@@ -117,27 +116,27 @@ FtResult TestMPSSE(FT_HANDLE ftHandle)
   // Enable internal loop-back
   byOutputBuffer[dwNumBytesToSend++] = 0x84;  // Enable loopback
   TRY(FtResult{ FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent) }.or_else(
-      disable_mpsse));       // Send off the loopback command
+      disable_mpsse));   // Send off the loopback command
   dwNumBytesToSend = 0;  // Reset output buffer pointer
 
   // Check the receive buffer - it should be empty
   TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(disable_mpsse));  // Get the number
-                                                                                       // of bytes in the
-                                                                                       // FT2232H receive
-                                                                                       // buffer
+                                                                                           // of bytes in the
+                                                                                           // FT2232H receive
+                                                                                           // buffer
   if (dwNumBytesToRead != 0)
     return disable_mpsse(FtResult::Message::OTHER_ERROR);
 
   // send bad op-code to check every thing is working correctly
   byOutputBuffer[dwNumBytesToSend++] = 0xAB;  // Add bogus command ‘0xAB’ to the queue
   TRY(FtResult{ FT_Write(ftHandle, byOutputBuffer, dwNumBytesToSend, &dwNumBytesSent) }.or_else(
-      disable_mpsse));       // Send off the BAD command
+      disable_mpsse));   // Send off the BAD command
   dwNumBytesToSend = 0;  // Reset output buffer pointer
 
   for (uint32_t counter = 0; (counter < 100) && (dwNumBytesToRead == 0); ++counter)
     TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) }.or_else(disable_mpsse));  // Get the number of
-                                                                                         // bytes in the device
-                                                                                         // input buffer
+                                                                                             // bytes in the device
+                                                                                             // input buffer
 
   if (!dwNumBytesToRead)
     return FtResult::Message::OTHER_ERROR;
@@ -221,7 +220,6 @@ static std::string encode(FirstIterator fst, EndIterator const end)
                      .add(high)
                      .add(low)
                      .adds("\x80\x00\x0b\x80\x08\x0b");
-  static_assert(message.size == 17, "The encoding is incorrect!");
   std::for_each(fst, end, [&](WORD word) {
     high = word >> 8;
     low = word & 0xff;
@@ -235,12 +233,8 @@ void SPI_WriteBuffer(FT_HANDLE ftHandle, WORD* buffer, DWORD numwords)
   DWORD dwNumBytesSent = 0;
   auto message = encode(buffer, buffer + numwords);
 
-  auto write = [&]() {
-    FtResult result{ FT_Write(ftHandle, &message.front(), message.size(), &dwNumBytesSent) };
-    return result.or_else([](FtResult error) {
-      return error;
-    });
-  };
+  auto write = [&]() { return FtResult{ FT_Write(ftHandle, &message.front(), message.size(), &dwNumBytesSent) }; };
 
-  while (write() != FtResult::Message::OK);
+  while (write() != FtResult::Message::OK)
+    ;
 }
