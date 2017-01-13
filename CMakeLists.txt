@@ -17,16 +17,13 @@ find_package(catkin REQUIRED COMPONENTS)
 
 find_package (PkgConfig REQUIRED)
 
-# Boost
-find_package ( Boost COMPONENTS system REQUIRED  )
-
 # Mapbox
 find_package ( Mapbox REQUIRED )
 
 # libftd2xx driver lib
 find_package(libftd2xx REQUIRED)
 
-catkin_package(DEPENDS Boost
+catkin_package(
         INCLUDE_DIRS include
         LIBRARIES libflexrayusbinterface
         DEPENDS libftd2xx Mapbox)
@@ -45,7 +42,6 @@ include_directories(
 add_library(libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
 target_link_libraries(
     libflexrayusbinterface
-    ${Boost_LIBRARIES}
     ${libftd2xx_LIBRARY}
     -ldl
 )

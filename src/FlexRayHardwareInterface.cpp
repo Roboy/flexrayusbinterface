@@ -1,13 +1,14 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
-#include <string.h>
-#include <unistd.h>
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 #include <utility>
 
+#include "Spi.hpp"
 #include "flexrayusbinterface/Message.hpp"
 
 FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(channel)
@@ -27,17 +28,12 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(cha
   exchangeData();
 };
 
-auto FlexRayHardwareInterface::connect() -> boost::optional<FlexRayHardwareInterface>
+auto FlexRayHardwareInterface::connect() -> variant<FlexRayHardwareInterface, FtResult>
 {
-  if (auto connection = UsbChannel::connect())
-    if (auto device = connection->get_device())
-      if (auto channel = device->open())
-        for (auto tries = 0; tries < 3; ++tries)
-          if (auto mpsse = channel->configure_mpsse())
-            for (;;)
-              if (auto usb = mpsse->configure_spi())
-                return FlexRayHardwareInterface(*usb);
-  return boost::none;
+  return UsbChannel::open("FTVDIMQW")
+      .match(
+          [](UsbChannel usb) -> variant<FlexRayHardwareInterface, FtResult> { return FlexRayHardwareInterface(usb); },
+          [](FtResult error) -> variant<FlexRayHardwareInterface, FtResult> { return error; });
 };
 
 void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode)
@@ -53,7 +49,7 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
   vel = 0;
   command.frame[ganglion_id].sp[motor_id] = vel;
   exchangeData();
-  usleep(300000);
+  std::this_thread::sleep_for(std::chrono::microseconds{300000});
   exchangeData();
   tendonDisplacement_t[0] =
       GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
@@ -63,7 +59,7 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     vel = 3;
     command.frame[ganglion_id].sp[motor_id] = vel;
     exchangeData();
-    usleep(500000);
+    std::this_thread::sleep_for(std::chrono::microseconds{500000});
     exchangeData();
     tendonDisplacement_t[i] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
   }
@@ -82,7 +78,7 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
   {
     command.frame[ganglion_id].sp[motor_id] = vel;
     exchangeData();
-    usleep(300000);
+    std::this_thread::sleep_for(std::chrono::microseconds{300000});
     exchangeData();
     tendonDisplacement_t2[t + 1] = GanglionData[ganglion_id].muscleState[motor_id].tendonDisplacement / 32768.0f;
     t++;
@@ -113,7 +109,7 @@ void FlexRayHardwareInterface::relaxSpring(uint32_t ganglion_id, uint32_t motor_
     vel = 0;
     command.frame[ganglion_id].sp[motor_id] = vel;
     exchangeData();
-    sleep(2);
+    std::this_thread::sleep_for(std::chrono::seconds{2});
 
     command.params.tag = 1;
     command.frame[0].OperationMode[0] = Initialise;
@@ -201,10 +197,8 @@ std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
 
   usb.write(buffer);
   // WAIT FOR DATA TO ARRIVE
-  while (usb.bytes_available().match([](DWORD bytes) { return bytes; },
-                                     [](FtResult) {
-                                       return 0;
-                                     }) < DATASETSIZE * sizeof(WORD))
+  while (usb.bytes_available().match([](DWORD bytes) { return bytes; }, [](FtResult) { return 0; }) <
+         DATASETSIZE * sizeof(WORD))
   {
   }
   usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'))

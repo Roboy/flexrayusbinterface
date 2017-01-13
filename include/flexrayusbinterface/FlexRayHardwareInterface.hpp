@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "flexrayusbinterface/CommunicationData.h"
-#include "flexrayusbinterface/Spi.hpp"
 
 #include "flexrayusbinterface/UsbChannel.hpp"
 
@@ -96,7 +95,7 @@ public:
   //! upstream from ganglions to PC
   std::array<ganglionData_t, NUMBER_OF_GANGLIONS> GanglionData;
 
-  static auto connect() -> boost::optional<FlexRayHardwareInterface>;
+  static auto connect() -> variant<FlexRayHardwareInterface, FtResult>;
 
 private:
   FlexRayHardwareInterface(UsbChannel channel);
