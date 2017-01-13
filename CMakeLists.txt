@@ -40,7 +40,7 @@ include_directories(
     )
 
 #==============================================================================
-# Application
+# Library
 #==============================================================================
 add_library(libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
 target_link_libraries(
@@ -55,6 +55,14 @@ target_link_libraries(
 install(TARGETS
         libflexrayusbinterface
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        )
+
+add_executable(list_ftdi_devices src/ListDevices.cpp)
+target_link_libraries(list_ftdi_devices ${libftd2xx_LIBRARY})
+
+install(TARGETS
+        list_ftdi_devices
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
         )
 
 file(GLOB TEST_SOURCE_FILES test/*.cpp)
