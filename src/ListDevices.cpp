@@ -1,3 +1,4 @@
+#include <bitset>
 #include <iostream>
 #include <vector>
 
@@ -26,9 +27,9 @@ int main()
   std::cout << devices.size() << " FTDI devices found\n\n";
   for (auto const& info : devices)
   {
-    std::cout << "FTDI device: " << info.SerialNumber << '\n';
-    std::cout << info.Description << '\n';
-    std::cout << info.Type << '\n';
-    std::cout << info.Flags << "\n\n";
+    std::cout << "FTDI device serial number: " << info.SerialNumber << '\n';
+    std::cout << "description: " << info.Description << '\n';
+    std::cout << "type: " << info.Type << '\n';
+    std::cout << "flags: " << std::bitset<8*sizeof(info.Flags)>(info.Flags) << "\n\n";
   }
 }
