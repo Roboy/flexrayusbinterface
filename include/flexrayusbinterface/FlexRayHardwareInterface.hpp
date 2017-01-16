@@ -23,6 +23,15 @@ public:
     Hard
   };
 
+  enum class Controller : unsigned int
+  {
+    Raw = comsControllerMode::Raw,
+    Torque = comsControllerMode::Torque,
+    Velocity = comsControllerMode::Velocity,
+    Potition = comsControllerMode::Position,
+    Force = comsControllerMode::Force
+  };
+
   /**
   * This function resets the sensor displacement of one motor
   */
@@ -83,6 +92,12 @@ public:
    * Measure connection time via multiple calls to exchangeData()
    */
   std::chrono::duration<double> measureConnectionTime(uint32_t iterations);
+
+  inline void set(uint32_t ganglion, uint32_t motor, Controller controller, float param) {
+      command.frame[ganglion].sp[motor] = param;
+      command.frame[ganglion].ControlMode[motor] = static_cast<comsControllerMode>(controller);
+      command.frame[ganglion].OperationMode[motor] = Run;
+  }
 
   struct
   {
