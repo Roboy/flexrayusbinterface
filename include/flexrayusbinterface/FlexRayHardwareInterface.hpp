@@ -33,11 +33,6 @@ public:
   };
 
   /**
-  * This function resets the sensor displacement of one motor
-  */
-  void relaxSpring(uint32_t ganglion_id, uint32_t motor_id, int controlmode);
-
-  /**
   *This function initializes position control for all motors on all ganglia. Pleaser refer to myorobotics
   * documentation for details on control parameters.
   */

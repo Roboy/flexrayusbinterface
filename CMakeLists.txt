@@ -39,7 +39,7 @@ include_directories(
 #==============================================================================
 # Library
 #==============================================================================
-add_library(libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp)
+add_library(libflexrayusbinterface src/FlexRayHardwareInterface.cpp src/Spi.cpp src/UsbChannel.cpp src/Calibration.cpp)
 target_link_libraries(
     libflexrayusbinterface
     ${libftd2xx_LIBRARY}
