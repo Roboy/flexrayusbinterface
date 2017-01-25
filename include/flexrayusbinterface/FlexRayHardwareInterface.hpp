@@ -28,7 +28,7 @@ public:
     Raw = comsControllerMode::Raw,
     Torque = comsControllerMode::Torque,
     Velocity = comsControllerMode::Velocity,
-    Potition = comsControllerMode::Position,
+    Position = comsControllerMode::Position,
     Force = comsControllerMode::Force
   };
 

@@ -23,6 +23,9 @@ find_package ( Mapbox REQUIRED )
 # Mapbox
 find_package ( Units REQUIRED )
 
+# yaml-cpp
+find_package ( yaml-cpp REQUIRED )
+
 # libftd2xx driver lib
 find_package(libftd2xx REQUIRED)
 
@@ -38,6 +41,7 @@ include_directories(
     ${Mapbox_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIR}
     ${Units_INCLUDE_DIR}
+    ${YAML_CPP_INCLUDE_DIR}
     )
 
 #==============================================================================
@@ -47,13 +51,11 @@ add_library(libflexrayusbinterface
     src/FlexRayHardwareInterface.cpp
     src/Spi.cpp src/UsbChannel.cpp
     src/Calibration.cpp
-    src/FlexRayBus.cpp)
-
-target_link_libraries(
-    libflexrayusbinterface
-    ${libftd2xx_LIBRARY}
-    -ldl
 )
+
+target_link_libraries( libflexrayusbinterface ${libftd2xx_LIBRARY} -ldl)
+target_link_libraries(libflexrayusbinterface ${YAML_CPP_LIBRARIES})
+
 #==============================================================================
 # Installation
 #==============================================================================
