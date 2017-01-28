@@ -4,10 +4,9 @@
 
 TEST(Slot, batch)
 {
-  std::mutex m;
-  Slot<int>::data_t data;
+  Mutex<Slot<int>::data_t> shared;
 
-  Slot<int> slot{ m, data };
+  Slot<int> slot{ shared };
 
   auto g = slot.enqueue(4);
   EXPECT_EQ(g.wait_for(std::chrono::seconds{ 0 }), std::future_status::timeout);
@@ -20,7 +19,8 @@ TEST(Slot, batch)
   EXPECT_EQ(g.get(), Completion::Preempted);
 
   {
-    std::lock_guard<std::mutex> _{ m };
+    auto guard = shared.lock();
+    auto& data = guard.get();
     EXPECT_TRUE(static_cast<bool>(data));
     EXPECT_EQ(data->second, 3);
     data->first.set_value(Completion::Completed);
@@ -32,10 +32,9 @@ TEST(Slot, batch)
 
 TEST(Slot, parallel)
 {
-  std::mutex m;
-  Slot<std::string>::data_t message;
+  Mutex<Slot<std::string>::data_t> message;
 
-  Slot<std::string> slot{ m, message };
+  Slot<std::string> slot{ message };
 
   auto g = slot.enqueue("Hello world!");
 }

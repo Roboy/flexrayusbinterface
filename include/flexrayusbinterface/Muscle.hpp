@@ -4,6 +4,7 @@
 #include <future>
 
 #include <boost/optional.hpp>
+#include "flexrayusbinterface/Mutex.hpp"
 
 enum class Completion
 {
@@ -20,8 +21,9 @@ public:
 
   auto enqueue(T t) -> std::future<result_t>
   {
-    std::lock_guard<std::mutex> _{ guard.get() };
-    data_t& data = this->data;
+    auto guard = this->data.get().lock();
+    auto& data = guard.get();
+
     if (data)
       data->first.set_value(Completion::Preempted);
 
@@ -29,7 +31,7 @@ public:
     return data->first.get_future();
   }
 
-  Slot(std::mutex& guard, data_t& data) : guard{ guard }, data{ data }
+  Slot(Mutex<data_t>& data) : data{ data }
   {
   }
   Slot(Slot&&) = default;
@@ -39,8 +41,7 @@ private:
   Slot(Slot const&) = delete;
   Slot& operator=(Slot const&) = delete;
 
-  std::reference_wrapper<std::mutex> guard;
-  std::reference_wrapper<data_t> data;
+  std::reference_wrapper<Mutex<data_t>> data;
 };
 
 /**
@@ -62,7 +63,7 @@ template <typename Now, typename Later, typename Strict = std::true_type>
 class Entangled
 {
 public:
-  Entangled(Now now, std::future<Later> later) : now{ std::move(now) }, later{ std::move(later) }
+  Entangled(Now&& now, std::future<Later>&& later) : now{ std::move(now) }, later{ std::move(later) }
   {
   }
 
