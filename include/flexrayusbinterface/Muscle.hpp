@@ -113,18 +113,14 @@ public:
   using completion_t = typename Slot<T>::result_t;
 
   template <typename... Args>
-  auto enqueue(Args&&... args) && -> Entangled<CompletionGuard, completion_t>
+  auto enqueue(Args&&... args) && -> Entangled<typename std::decay<decltype(*this)>::type, completion_t>
   {
     auto fut = slot.enqueue(std::forward<Args>(args)...);
-    return { CompletionGuard{ std::move(slot) }, std::move(fut) };
+    return { { std::move(slot) }, std::move(fut) };
   }
 
-  operator Slot<T>() &&
-  {
-    return std::move(slot);
-  }
-
-  CompletionGuard(Slot<T> slot) : slot{ std::move(slot) }
+  template<typename... Args>
+  explicit CompletionGuard(Args&&... args) : slot{ std::forward<Args>(args)... }
   {
   }
 
