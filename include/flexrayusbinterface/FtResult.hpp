@@ -1,10 +1,23 @@
 #pragma once
 
+#include <string>
 #include <type_traits>
 #include <utility>
+
 #include "ftd2xx.h"
 
-#define EXPECT(_y_, _x_) do { auto&& _actual_value_ = (_x_); if (_actual_value_ == (_y_)) {} else { return _actual_value_; } } while (false)
+#define EXPECT(_y_, _x_)                                                                                               \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    auto&& _actual_value_ = (_x_);                                                                                     \
+    if (_actual_value_ == (_y_))                                                                                       \
+    {                                                                                                                  \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+      return _actual_value_;                                                                                           \
+    }                                                                                                                  \
+  } while (false)
 #define TRY(_x_) EXPECT(FtResult::Message::OK, (_x_))
 
 class FtResult
@@ -35,9 +48,15 @@ public:
 
 private:
   Message message;
+  std::string custom_message;
 
 public:
   inline FtResult(Message message) : message{ message }
+  {
+  }
+
+  inline FtResult(std::string error_message)
+    : message{ Message::OTHER_ERROR }, custom_message{ std::move(error_message) }
   {
   }
 
@@ -45,53 +64,54 @@ public:
   {
   }
 
-  inline auto str() const -> char const*
+  inline auto str() const -> std::string
   {
     switch (message)
     {
       case Message::OK:
-        return  "it's all good" ;
+        return "it's all good";
       case Message::INVALID_HANDLE:
-        return  "invalid handle" ;
+        return "invalid handle";
       case Message::DEVICE_NOT_OPENED:
-        return  "device not opened" ;
+        return "device not opened";
       case Message::IO_ERROR:
-        return  "I/O error" ;
+        return "I/O error";
       case Message::INSUFFICIENT_RESOURCES:
-        return  "insufficient resources" ;
+        return "insufficient resources";
       case Message::INVALID_PARAMETER:
-        return  "invalid parameter" ;
+        return "invalid parameter";
       case Message::INVALID_BAUD_RATE:
-        return  "invalid baud rate" ;
+        return "invalid baud rate";
       case Message::DEVICE_NOT_OPENED_FOR_ERASE:
-        return  "device not opened for erase" ;
+        return "device not opened for erase";
       case Message::DEVICE_NOT_OPENED_FOR_WRITE:
-        return  "device not opened for write" ;
+        return "device not opened for write";
       case Message::FAILED_TO_WRITE_DEVICE:
-        return  "failed to write device" ;
+        return "failed to write device";
       case Message::EEPROM_READ_FAILED:
-        return  "EEPROM read failed" ;
+        return "EEPROM read failed";
       case Message::EEPROM_WRITE_FAILED:
-        return  "EEPROM write failed" ;
+        return "EEPROM write failed";
       case Message::EEPROM_ERASE_FAILED:
-        return  "EEPROM erase failed" ;
+        return "EEPROM erase failed";
       case Message::EEPROM_NOT_PRESENT:
-        return  "EEPROM not present" ;
+        return "EEPROM not present";
       case Message::EEPROM_NOT_PROGRAMMED:
-        return  "EEPROM not programmed" ;
+        return "EEPROM not programmed";
       case Message::INVALID_ARGS:
-        return  "invalid arguments" ;
+        return "invalid arguments";
       case Message::NOT_SUPPORTED:
-        return  "not supported" ;
+        return "not supported";
       case Message::OTHER_ERROR:
-        return  "other error" ;
+        return std::string{"other error: "} + custom_message;
       case Message::DEVICE_LIST_NOT_READY:
-        return  "device list not ready" ;
+        return "device list not ready";
     }
   }
 
-  inline operator Message() const {
-      return message;
+  inline operator Message() const
+  {
+    return message;
   }
 
   template <typename F, typename... Args>

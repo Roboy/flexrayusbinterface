@@ -19,7 +19,8 @@ public:
   using result_t = Completion;
   using data_t = boost::optional<std::pair<std::promise<result_t>, T>>;
 
-  auto enqueue(T t) -> std::future<result_t>
+  template<typename... IntoT>
+  auto enqueue(IntoT&&... t_args) -> std::future<result_t>
   {
     auto guard = this->data.get().lock();
     auto& data = guard.get();
@@ -27,7 +28,7 @@ public:
     if (data)
       data->first.set_value(Completion::Preempted);
 
-    data = std::make_pair(std::promise<result_t>{}, std::move(t));
+    data = std::pair<std::promise<result_t>, T>{std::promise<result_t>{}, T{std::forward<IntoT>(t_args)...}};
     return data->first.get_future();
   }
 
@@ -43,6 +44,13 @@ private:
 
   std::reference_wrapper<Mutex<data_t>> data;
 };
+
+template <typename T, typename... Args>
+auto make_channel(Args&&... args) -> std::pair<Slot<T>, std::unique_ptr<Mutex<typename Slot<T>::data_t>>>
+{
+  auto data = new Mutex<typename Slot<T>::data_t>{ std::forward<Args>(args)... };
+  return {Slot<T>{*data}, std::unique_ptr<Mutex<typename Slot<T>::data_t>>{data}};
+}
 
 /**
  * This class represents the connection between an object `now` that is readily
@@ -112,14 +120,13 @@ class CompletionGuard
 public:
   using completion_t = typename Slot<T>::result_t;
 
-  template <typename... Args>
-  auto enqueue(Args&&... args) && -> Entangled<typename std::decay<decltype(*this)>::type, completion_t>
+  template<typename... IntoT>
+  auto enqueue(IntoT&&... t_args) && -> Entangled<typename std::decay<decltype(*this)>::type, completion_t>
   {
-    auto fut = slot.enqueue(std::forward<Args>(args)...);
-    return { { std::move(slot) }, std::move(fut) };
+    return { CompletionGuard<T>{ std::move(slot) }, slot.enqueue(std::forward<IntoT>(t_args)...) };
   }
 
-  template<typename... Args>
+  template <typename... Args>
   explicit CompletionGuard(Args&&... args) : slot{ std::forward<Args>(args)... }
   {
   }

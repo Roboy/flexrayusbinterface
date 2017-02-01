@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS)
 find_package (PkgConfig REQUIRED)
 
 # Boost
-find_package ( Boost REQUIRED )
+find_package ( Boost REQUIRED COMPONENTS thread )
 
 # Mapbox
 find_package ( Mapbox REQUIRED )
@@ -61,6 +61,7 @@ add_library(libflexrayusbinterface
 
 target_link_libraries( libflexrayusbinterface ${libftd2xx_LIBRARY} -ldl)
 target_link_libraries(libflexrayusbinterface ${YAML_CPP_LIBRARIES})
+target_link_libraries(libflexrayusbinterface ${Boost_LIBRARIES})
 
 #==============================================================================
 # Installation
@@ -80,3 +81,4 @@ install(TARGETS
 
 file(GLOB TEST_SOURCE_FILES test/*.cpp)
 catkin_add_gtest(unit_tests ${TEST_SOURCE_FILES})
+target_link_libraries(unit_tests ${Boost_LIBRARIES})

@@ -1,155 +1,132 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
-#include <algorithm>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include <thread>
 #include <utility>
 
-#include "Spi.hpp"
-#include "flexrayusbinterface/Message.hpp"
+#include "flexrayusbinterface/Protocol.hpp"
+#include "flexrayusbinterface/Range.hpp"
 
-FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel channel) : usb(channel)
+FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& channel)
+  : protocol{ std::move(channel) }
+  , slots(protocol.NumberOfGanglions)
+  , worker{ std::async(std::launch::async,
+                       [&](std::future<void> stop) {
+                         while (stop.wait_for(std::chrono::seconds{ 0 }) != std::future_status::ready)
+                         {
+                           protocol.exchange_data();
+                         }
+                       },
+                       stop_work.get_future()) }
 {
-  command.params.tag = 0;               // sint32
-  command.params.outputPosMax = 1000;   // sint32
-  command.params.outputNegMax = -1000;  // sint32
-  command.params.timePeriod = 100;      // float32      //in us set time period to avoid error case
-
-  command.params.radPerEncoderCount = 2 * 3.14159265359 / (2000.0 * 53.0);  // float32
-  command.params.params.pidParameters.lastError = 0;                        // float32
-
-  for (auto& frame : command.frame)
-    std::fill_n(&frame.sp[0], 4, 0);
+  for (std::size_t i = 0; i < protocol.NumberOfGanglions; ++i)
+  {
+    auto& muscle_slots = slots[i];
+    for (std::size_t j = 0; j < protocol.MusclesPerGanglion; ++j)
+      muscle_slots.emplace_back(std::move(*protocol.get_slot(i, j)));
+  }
   initForceControl();
-
-  exchangeData();
 };
 
-auto FlexRayHardwareInterface::connect() -> variant<FlexRayHardwareInterface, FtResult>
+FlexRayHardwareInterface::~FlexRayHardwareInterface()
 {
-  return UsbChannel::open("FTVDIMQW")
-      .match(
-          [](UsbChannel usb) -> variant<FlexRayHardwareInterface, FtResult> { return FlexRayHardwareInterface(usb); },
-          [](FtResult error) -> variant<FlexRayHardwareInterface, FtResult> { return error; });
-};
-
-
-void FlexRayHardwareInterface::initPositionControl(float Pgain, float IGain, float Dgain, float forwardGain,
-                                                   float deadBand, float integral, float IntegralPosMin,
-                                                   float IntegralPosMax, float spPosMin, float spPosMax)
-{
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax);
-  init(Position);
+  stop_work.set_value();
 }
 
-void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
-                                                   float Dgain, float forwardGain, float deadBand, float integral,
+void FlexRayHardwareInterface::initPositionControl(bool set_tag, float Pgain, float IGain, float Dgain,
+                                                   float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
 {
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax);
-  init(Position, ganglion, motor);
+  init(Position, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin,
+                           IntegralPosMax, spPosMin, spPosMax));
 }
 
-void FlexRayHardwareInterface::initVelocityControl(float Pgain, float IGain, float Dgain, float forwardGain,
-                                                   float deadBand, float integral, float IntegralPosMin,
-                                                   float IntegralPosMax, float spPosMin, float spPosMax)
+void FlexRayHardwareInterface::initPositionControl(uint32_t ganglion, uint32_t motor, bool set_tag, float Pgain,
+                                                   float IGain, float Dgain, float forwardGain, float deadBand,
+                                                   float integral, float IntegralPosMin, float IntegralPosMax,
+                                                   float spPosMin, float spPosMax)
 {
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax);
-  init(Velocity);
+  init(Position, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin,
+                           IntegralPosMax, spPosMin, spPosMax),
+       ganglion, motor);
 }
 
-void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
-                                                   float Dgain, float forwardGain, float deadBand, float integral,
+void FlexRayHardwareInterface::initVelocityControl(bool set_tag, float Pgain, float IGain, float Dgain,
+                                                   float forwardGain, float deadBand, float integral,
                                                    float IntegralPosMin, float IntegralPosMax, float spPosMin,
                                                    float spPosMax)
 {
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax);
-  init(Velocity, ganglion, motor);
+  init(Velocity, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin,
+                           IntegralPosMax, spPosMin, spPosMax));
 }
 
-void FlexRayHardwareInterface::initForceControl(float Pgain, float IGain, float Dgain, float forwardGain,
+void FlexRayHardwareInterface::initVelocityControl(uint32_t ganglion, uint32_t motor, bool set_tag, float Pgain,
+                                                   float IGain, float Dgain, float forwardGain, float deadBand,
+                                                   float integral, float IntegralPosMin, float IntegralPosMax,
+                                                   float spPosMin, float spPosMax)
+{
+  init(Velocity, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin,
+                           IntegralPosMax, spPosMin, spPosMax),
+       ganglion, motor);
+}
+
+void FlexRayHardwareInterface::initForceControl(bool set_tag, float Pgain, float IGain, float Dgain, float forwardGain,
                                                 float deadBand, float integral, float IntegralPosMin,
                                                 float IntegralPosMax, float spPosMin, float spPosMax,
                                                 float torqueConstant, SpringElasticity springType)
 {
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax,
-            torqueConstant, springType);
-  init(Force);
+  init(Force, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax,
+                        spPosMin, spPosMax, torqueConstant, springType));
 }
 
-void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, float Pgain, float IGain,
-                                                float Dgain, float forwardGain, float deadBand, float integral,
-                                                float IntegralPosMin, float IntegralPosMax, float spPosMin,
-                                                float spPosMax, float torqueConstant, SpringElasticity springType)
+void FlexRayHardwareInterface::initForceControl(uint32_t ganglion, uint32_t motor, bool set_tag, float Pgain,
+                                                float IGain, float Dgain, float forwardGain, float deadBand,
+                                                float integral, float IntegralPosMin, float IntegralPosMax,
+                                                float spPosMin, float spPosMax, float torqueConstant,
+                                                SpringElasticity springType)
 {
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax,
-            torqueConstant, springType);
-
-  init(Force, ganglion, motor);
+  init(Force, setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax,
+                        spPosMin, spPosMax, torqueConstant, springType),
+       ganglion, motor);
 }
 
-std::bitset<NUMBER_OF_GANGLIONS> FlexRayHardwareInterface::exchangeData()
+control_Parameters_t FlexRayHardwareInterface::setParams(bool set_tag, float Pgain, float IGain, float Dgain,
+                                                         float forwardGain, float deadBand, float integral,
+                                                         float IntegralPosMin, float IntegralPosMax, float spPosMin,
+                                                         float spPosMax)
 {
-  uint32_t activeGanglionsMask = 0;
-  std::vector<WORD> buffer(DATASETSIZE, 0);
-  std::copy_n(static_cast<WORD*>(static_cast<void*>(&command)), sizeof(command) / sizeof(WORD), std::begin(buffer));
+  control_Parameters_t params;
+  params.tag = set_tag ? 1 : 0;  // sint32
+  params.outputPosMax = 1000;    // sint32
+  params.outputNegMax = -1000;   // sint32
+  params.timePeriod = 100;       // float32      //in us set time period to avoid error case
 
-  usb.write(buffer);
-  // WAIT FOR DATA TO ARRIVE
-  while (usb.bytes_available().match([](DWORD bytes) { return bytes; }, [](FtResult) { return 0; }) <
-         DATASETSIZE * sizeof(WORD))
-  {
-  }
-  usb.read(std::string(DATASETSIZE * sizeof(WORD), '\0'))
-      .match(
-          [this, &activeGanglionsMask](std::string& data) {
-            std::stringstream buffer;
-            WORD ganglions;
-            buffer.str(data);
-            Parser<DATASETSIZE * sizeof(WORD)>{}.add(GanglionData).add(ganglions).read(buffer);
-            activeGanglionsMask = ganglions;
-          },
-          [](FtResult) {});
-  return activeGanglionsMask;
+  params.radPerEncoderCount = radPerEncoderCount;  // float32
+  params.params.pidParameters.lastError = 0;       // float32
+
+  params.spPosMax = spPosMax;  // float32
+  params.spNegMax = spPosMin;  // float32
+
+  params.params.pidParameters.integral = integral;              // float32
+  params.params.pidParameters.pgain = Pgain;                    // float32
+  params.params.pidParameters.igain = IGain;                    // float32
+  params.params.pidParameters.dgain = Dgain;                    // float32
+  params.params.pidParameters.forwardGain = forwardGain;        // float32
+  params.params.pidParameters.deadBand = deadBand;              // float32
+  params.params.pidParameters.IntegralPosMax = IntegralPosMax;  // float32
+  params.params.pidParameters.IntegralNegMax = IntegralPosMin;  // float32
+
+  return params;
 }
 
-std::chrono::duration<double> FlexRayHardwareInterface::measureConnectionTime(uint32_t iterations)
+control_Parameters_t FlexRayHardwareInterface::setParams(bool set_tag, float Pgain, float IGain, float Dgain,
+                                                         float forwardGain, float deadBand, float integral,
+                                                         float IntegralPosMin, float IntegralPosMax, float spPosMin,
+                                                         float spPosMax, float torqueConstant,
+                                                         SpringElasticity springType)
 {
-  auto start = std::chrono::high_resolution_clock::now();
-  for (uint32_t i = 0; i < iterations; i++)
-  {
-    exchangeData();
-  }
-  std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
-  return elapsed / iterations;
-}
-
-void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, float forwardGain, float deadBand,
-                                         float integral, float IntegralPosMin, float IntegralPosMax, float spPosMin,
-                                         float spPosMax)
-{
-  command.params.spPosMax = spPosMax;  // float32
-  command.params.spNegMax = spPosMin;  // float32
-
-  command.params.params.pidParameters.integral = integral;              // float32
-  command.params.params.pidParameters.pgain = Pgain;                    // float32
-  command.params.params.pidParameters.igain = IGain;                    // float32
-  command.params.params.pidParameters.dgain = Dgain;                    // float32
-  command.params.params.pidParameters.forwardGain = forwardGain;        // float32
-  command.params.params.pidParameters.deadBand = deadBand;              // float32
-  command.params.params.pidParameters.IntegralPosMax = IntegralPosMax;  // float32
-  command.params.params.pidParameters.IntegralNegMax = IntegralPosMin;  // float32
-}
-
-void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, float forwardGain, float deadBand,
-                                         float integral, float IntegralPosMin, float IntegralPosMax, float spPosMin,
-                                         float spPosMax, float torqueConstant, SpringElasticity springType)
-{
-  setParams(Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax, spPosMin, spPosMax);
+  auto params = setParams(set_tag, Pgain, IGain, Dgain, forwardGain, deadBand, integral, IntegralPosMin, IntegralPosMax,
+                          spPosMin, spPosMax);
 
   float polyPar[4];
 
@@ -176,37 +153,34 @@ void FlexRayHardwareInterface::setParams(float Pgain, float IGain, float Dgain, 
       break;
   }
 
-  command.params.polyPar[0] = polyPar[0];  // float32
-  command.params.polyPar[1] = polyPar[1];
-  command.params.polyPar[2] = polyPar[2];
-  command.params.polyPar[3] = polyPar[3];
-  command.params.torqueConstant = torqueConstant;  // float32
+  params.polyPar[0] = polyPar[0];  // float32
+  params.polyPar[1] = polyPar[1];
+  params.polyPar[2] = polyPar[2];
+  params.polyPar[3] = polyPar[3];
+  params.torqueConstant = torqueConstant;  // float32
+
+  return params;
 }
 
-void FlexRayHardwareInterface::init(comsControllerMode mode)
+void FlexRayHardwareInterface::init(comsControllerMode mode, control_Parameters_t params)
 {
-  // initialize PID controller in motordriver boards
-  for (auto& frame : command.frame)
-  {
-    std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), mode);
-    std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Initialise);
-  }
-  exchangeData();
-  for (auto& frame : command.frame)
-  {
-    std::fill(std::begin(frame.ControlMode), std::end(frame.ControlMode), 0);
-    std::fill(std::begin(frame.OperationMode), std::end(frame.OperationMode), Run);
-  }
-  exchangeData();
+  using guard_t = CompletionGuard<Protocol<>::input_t>;
+  std::vector<Entangled<guard_t, guard_t::completion_t>> tmp_slots;
+
+  for (auto& muscle_slots : slots)
+    for (auto& slot : muscle_slots)
+      tmp_slots.emplace_back(std::move(slot).enqueue(Enqueue{ mode, params }));
+
+  for (auto& muscle_slots : reversed(slots))
+    for (auto& slot : reversed(muscle_slots))
+    {
+      slot = std::move(tmp_slots.back()).get().first;
+      tmp_slots.pop_back();
+    }
 }
 
-void FlexRayHardwareInterface::init(comsControllerMode mode, uint32_t ganglion, uint32_t motor)
+void FlexRayHardwareInterface::init(comsControllerMode mode, control_Parameters_t params, uint32_t ganglion,
+                                    uint32_t motor)
 {
-  // initialize PID controller in motordriver boards
-  command.frame[ganglion].ControlMode[motor] = mode;
-  command.frame[ganglion].OperationMode[motor] = Initialise;
-  exchangeData();
-  command.frame[ganglion].OperationMode[motor] = Run;
-  command.frame[ganglion].sp[motor] = 0;
-  exchangeData();
+  slots[ganglion][motor] = std::move(slots[ganglion][motor]).enqueue(Enqueue{ mode, params }).get().first;
 }

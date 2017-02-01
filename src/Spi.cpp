@@ -50,7 +50,7 @@ static FtResult TestMPSSE(FT_HANDLE ftHandle)
                                                                     // FT2232H receive
                                                                     // buffer
   if (dwNumBytesToRead != 0)
-    return FtResult::Message::OTHER_ERROR;
+    return std::string{ "There is still data to be read from the device: " } + std::to_string(dwNumBytesToRead) + "B";
 
   // send bad op-code to check every thing is working correctly
   byOutputBuffer[dwNumBytesToSend++] = 0xAB;  // Add bogus command ‘0xAB’ to the queue
@@ -58,14 +58,20 @@ static FtResult TestMPSSE(FT_HANDLE ftHandle)
   dwNumBytesToSend = 0;  // Reset output buffer pointer
 
   for (uint32_t counter = 0; (counter < 100) && (dwNumBytesToRead == 0); ++counter)
-    TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) });  // Get the number of
-                                                                      // bytes in the device
-                                                                      // input buffer
+  {
+    TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) });  // Get the number of bytes in the device input
+                                                                      // buffer
+  }
 
   if (!dwNumBytesToRead)
-    return FtResult::Message::OTHER_ERROR;
+    return { "The device did not respond to the BAD command echo request." };
   TRY(FtResult{ FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead) });  // Read the data from input
                                                                                           // buffer
+  if (dwNumBytesRead < dwNumBytesToRead)
+  {
+    return std::string{ "Failed to read the entire echo message. Only read " } + std::to_string(dwNumBytesRead) +
+           " out of " + std::to_string(dwNumBytesToRead) + " bytes.";
+  }
   auto received_echo = std::adjacent_find(&byInputBuffer[0], std::next(&byInputBuffer[0], dwNumBytesRead),
                                           [](BYTE left, BYTE right) { return left == 0xFA && right == 0xAB; });
 
@@ -78,9 +84,9 @@ static FtResult TestMPSSE(FT_HANDLE ftHandle)
   }
   else
   {
-    FT_SetBitMode(ftHandle, 0x0, 0x00);     // Reset the port to disable MPSSE
-    FT_Close(ftHandle);                     // Close the USB port
-    return FtResult::Message::OTHER_ERROR;  // Exit with error
+    FT_SetBitMode(ftHandle, 0x0, 0x00);                          // Reset the port to disable MPSSE
+    FT_Close(ftHandle);                                          // Close the USB port
+    return { "The echo did not contain the initial message." };  // Exit with error
   }
 }
 
@@ -120,7 +126,7 @@ FtResult ConfigureSPI(FT_HANDLE ftHandle, DWORD dwClockDivisor)
     auto output = ss.str();
     TRY(FtResult{ FT_Write(ftHandle, &output.front(), output.size(), &dwNumBytesSent) });  // Send out the commands
   }
-  std::this_thread::sleep_for(std::chrono::microseconds{100});  // Delay for 100us
+  std::this_thread::sleep_for(std::chrono::microseconds{ 100 });  // Delay for 100us
   return FtResult::Message::OK;
 }
 
@@ -137,29 +143,29 @@ static FtResult ConfigureMPSSE(FT_HANDLE ftHandle, DWORD clock_divisor)
   // ------------------------------------------------------------
 
   TRY(FtResult{ FT_ResetDevice(ftHandle) });                        // Reset USB device
-  TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) });  // Purge USB receive buffer
-                                                                    // first by
-  // reading out all old data from FT2232H
-  // receive buffer
-  //
+  TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) });  // Purge USB receive buffer first by reading out all
+                                                                    // old data from FT2232H receive buffer
+
   // Get the number of bytes in the FT2232H receive buffer
-  if ((dwNumBytesToRead > 0))  // Read out the data from FT2232H receive buffer if not empty
+  // Read out the data from FT2232H receive buffer if not empty
+  while (dwNumBytesToRead > 0)
+  {
     TRY(FtResult{ FT_Read(ftHandle, &byInputBuffer, dwNumBytesToRead, &dwNumBytesRead) });
+    TRY(FtResult{ FT_GetQueueStatus(ftHandle, &dwNumBytesToRead) });
+  }
 
   // request transfer sizes to 64K
   // Set USB request transfer sizes...page 73 d2XX programmer guide
   // (only dwInTransferSize has been implemented)
   TRY(FtResult{ FT_SetUSBParameters(ftHandle, InTransferSize, OutTransferSize) });
   TRY(FtResult{ FT_SetChars(ftHandle, false, 0, false, 0) });  // Disable event and error characters
-  TRY(FtResult{ FT_SetTimeouts(ftHandle, 300, 300) });         // Sets the read and write timeouts in
-                                                               // milliseconds
-  TRY(FtResult{ FT_SetLatencyTimer(ftHandle, 1) });            // Set the latency timer to 1mS (default is
-                                                               // 16mS)
+  TRY(FtResult{ FT_SetTimeouts(ftHandle, 300, 300) });         // Sets the read and write timeouts in milliseconds
+  TRY(FtResult{ FT_SetLatencyTimer(ftHandle, 1) });            // Set the latency timer to 1mS (default is 16mS)
   TRY(FtResult{ FT_SetBitMode(ftHandle, 0x0, 0x00) });         // Reset controller
   TRY(FtResult{ FT_SetBitMode(ftHandle, 0x0, 0x02) });         // Enable MPSSE mode
 
   // Wait for all the USB stuff to complete and work
-  std::this_thread::sleep_for(std::chrono::microseconds{1}); 
+  std::this_thread::sleep_for(std::chrono::microseconds{ 1 });
 
   TRY(TestMPSSE(ftHandle).or_else([&ftHandle](FtResult error) {
     FT_SetBitMode(ftHandle, 0x0, 0x00);  // Reset the port to disable MPSSE
