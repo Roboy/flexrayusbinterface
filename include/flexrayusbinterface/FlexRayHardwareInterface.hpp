@@ -100,7 +100,7 @@ public:
 
   FlexRayHardwareInterface(UsbChannel&& channel);
 
-  static constexpr float radPerEncoderCount{2 * 3.14159265359 / (2000.0 * 53.0)};
+  static constexpr float radPerEncoderCount{2 * 3.14159265359 / ( 4 * 512 * 53.0)};
 private:
 
   /**

@@ -50,6 +50,38 @@ public:
   template <typename... Args>
   explicit Protocol(Args&&... args) : channel{ std::forward<Args>(args)... }
   {
+    for (auto& frame : command.frame)
+    {
+      for (int i = 0; i < 4; ++i)
+      {
+        frame.ControlMode[i] = Raw;
+        frame.OperationMode[i] = Disable;  // Initialise; //Run
+        frame.sp[i] = 0;
+      }
+    }
+    auto& params = command.params;
+    params.tag = 0;
+    params.outputPosMax = 0;        // sint32			// set arbitary max position
+    params.outputNegMax = 0;        // sint32
+    params.spPosMax = 0;            // float32
+    params.spNegMax = 0;            // float32
+    params.timePeriod = 10000;      // float32		//in us	// set time period to avoid error case
+    params.radPerEncoderCount = 0;  // float32
+    params.polyPar[0] = 0;          // float32
+    params.polyPar[1] = 0;
+    params.polyPar[2] = 0;
+    params.polyPar[3] = 0;
+    params.torqueConstant = 0;  // float32
+
+    params.params.pidParameters.integral = 0;        // float32
+    params.params.pidParameters.pgain = 0;           // float32
+    params.params.pidParameters.igain = 0;           // float32
+    params.params.pidParameters.dgain = 0;           // float32
+    params.params.pidParameters.forwardGain = 0;     // float32
+    params.params.pidParameters.deadBand = 0;        // float32
+    params.params.pidParameters.lastError = 0;       // float32
+    params.params.pidParameters.IntegralPosMax = 0;  // float32
+    params.params.pidParameters.IntegralNegMax = 0;  // float32
   }
 
   auto get_slot(size_t ganglion_number, size_t muscle_number) -> boost::optional<CompletionGuard<input_t>>
@@ -81,7 +113,10 @@ public:
 
   auto exchange_data() -> void
   {
+    auto start = std::chrono::steady_clock::now();
     channel.write(create_message());
+
+    std::this_thread::sleep_until(start + std::chrono::microseconds{1800});
     // WAIT FOR DATA TO ARRIVE
     while (channel.bytes_available().match([](DWORD bytes) { return bytes; }, [](FtResult) { return 0; }) <
            DatasetSize * sizeof(WORD))
@@ -150,7 +185,7 @@ private:
               message.first.set_value(Completion::Completed);
               guard.get() = boost::none;
             },
-            [&](Enqueue& cmd) {
+            [&](Enqueue& cmd) mutable {
               if (static_cast<bool>(dynamic_slot_completion))
                 return;
               command.params = cmd.params;
@@ -161,6 +196,8 @@ private:
                                      ganglion_id,
                                      muscle_id,
                                      std::chrono::steady_clock::now() };
+              frame.OperationMode[muscle_id] = comsOperationMode::Initialise;
+              frame.ControlMode[muscle_id] = cmd.controller;
               guard.get() = boost::none;
             });
       }
