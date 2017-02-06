@@ -79,6 +79,15 @@ install(TARGETS
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
         )
 
-file(GLOB TEST_SOURCE_FILES test/*.cpp)
+set(TEST_SOURCE_FILES
+    test/Main.cpp
+    test/Message.cpp
+    test/Protocol.cpp
+    test/Slot.cpp
+    test/FlexRayBus.cpp
+    test/yaml/Parsers.cpp
+)
 catkin_add_gtest(unit_tests ${TEST_SOURCE_FILES})
 target_link_libraries(unit_tests ${Boost_LIBRARIES})
+target_link_libraries(unit_tests ${YAML_CPP_LIBRARIES})
+configure_file(test/yaml/data/RobotDescription.yaml ${CMAKE_CURRENT_BINARY_DIR}/RobotDescription.yaml COPYONLY)

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <tuple>
 
 #include <boost/optional.hpp>
 #include "units.h"
@@ -10,29 +11,9 @@
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
 template <typename... T>
-class TupleOfOptional
-{
-public:
-  template <typename U>
-  using optional = boost::optional<U>;
+using TupleOfOptional = std::tuple<boost::optional<T>...>;
 
-  template <typename U>
-  auto get() -> optional<U>
-  {
-    return std::get<optional<U>>(data);
-  }
-
-  template <typename U>
-  void set(U&& new_val)
-  {
-    std::get<optional<U>>(data) = std::forward<U>(new_val);
-  }
-
-private:
-  std::tuple<optional<T>...> data;
-};
-
-template <typename LengthU, typename ForceU>
+template <typename LengthU = units::length::meter, typename ForceU = units::force::newton>
 struct Spring
 {
   using force = ForceU;
@@ -51,6 +32,11 @@ struct Spring
   force_per_length_t linear;
   force_per_area_t quadratic;
   force_per_volume_t cubic;
+
+  Spring(force_t constant = {}, force_per_length_t linear = {}, force_per_area_t quadratic = {}, force_per_volume_t cubic = {})
+    : constant{ constant }, linear{ linear }, quadratic{ quadratic }, cubic{ cubic }
+  {
+  }
 
   auto tension(length_t displacement) const -> force_t
   {
@@ -98,24 +84,14 @@ using control_unit = typename control_unit_traits<C>::unit;
 template <FlexRayHardwareInterface::Controller C>
 class Controller
 {
+public:
   static constexpr FlexRayHardwareInterface::Controller controller = C;
   using control_t = units::unit_t<control_unit<C>>;
   using torque_t =
       units::unit_t<units::compound_unit<units::torque::newton_meter, units::inverse<units::current::ampere>>>;
   using spring_t = Spring<units::length::meter, units::force::newton>;
 
-  float Pgain;
-  float Igain;
-  float Dgain;
-  float forward_gain;
-  float dead_band;
-  float integral;
-  float integral_pos_min;
-  float integral_pos_max;
-  control_t sp_pos_min;
-  control_t sp_pos_max;
-  torque_t torque_constant;
-  spring_t spring;
+  Controller() {}
 
   Controller(float Pgain, float Igain, float Dgain, float forward_gain, float dead_band, float integral,
              float integral_pos_min, float integral_pos_max, control_t sp_pos_min, control_t sp_pos_max,
@@ -157,6 +133,20 @@ class Controller
 
     return p;
   }
+
+private:
+  float Pgain;
+  float Igain;
+  float Dgain;
+  float forward_gain;
+  float dead_band;
+  float integral;
+  float integral_pos_min;
+  float integral_pos_max;
+  control_t sp_pos_min;
+  control_t sp_pos_max;
+  torque_t torque_constant;
+  spring_t spring;
 };
 
 using RawCtrl = Controller<FlexRayHardwareInterface::Controller::Raw>;
@@ -169,11 +159,31 @@ using TorqueCtrl = Controller<FlexRayHardwareInterface::Controller::Torque>;
 
 using ForceCtrl = Controller<FlexRayHardwareInterface::Controller::Force>;
 
+struct Muscle
+{
+  TupleOfOptional<PositionCtrl, VelocityCtrl, ForceCtrl> controllers;
+  std::string id;
+
+  void add_controller(PositionCtrl controller)
+  {
+    std::get<0>(controllers) = boost::in_place(controller);
+  }
+
+  void add_controller(VelocityCtrl controller)
+  {
+    std::get<1>(controllers) = boost::in_place(controller);
+  }
+
+  void add_controller(ForceCtrl controller)
+  {
+    std::get<2>(controllers) = boost::in_place(controller);
+  }
+};
+
 struct Ganglion
 {
   using muscle_id_t = uint8_t;
-  using muscle_t = TupleOfOptional<RawCtrl, PositionCtrl, VelocityCtrl, ForceCtrl>;
-  using container_t = std::unordered_map<muscle_id_t, muscle_t>;
+  using container_t = std::unordered_map<muscle_id_t, Muscle>;
 
   container_t muscles;
 };
@@ -182,14 +192,21 @@ struct FlexRayBus
 {
   using ganglion_id_t = uint8_t;
   using container_t = std::unordered_map<ganglion_id_t, Ganglion>;
+  using muscle_map_t = std::unordered_map<std::string, std::tuple<ganglion_id_t, Ganglion::muscle_id_t, std::reference_wrapper<Muscle>>>;
 
   std::string serial_number;
-  units::frequency::hertz_t rate;
 
   container_t ganglions;
+  muscle_map_t muscles;
 
-  inline FlexRayBus(std::string serial_number, units::frequency::hertz_t rate)
-    : serial_number{ std::move(serial_number) }, rate{ rate }
+  inline FlexRayBus() {}
+
+  template <typename GanglionIteratorBegin, typename GanglionIteratorEnd>
+  FlexRayBus(std::string serial_number, GanglionIteratorBegin ibegin, GanglionIteratorEnd iend)
+    : serial_number{ std::move(serial_number) }, ganglions(ibegin, iend)
   {
+      for (auto&& ganglion: ganglions)
+          for (auto&& muscle: ganglion.second.muscles)
+              muscles.emplace(muscle.second.id, std::forward_as_tuple(ganglion.first, muscle.first, std::ref(muscle.second)));
   }
 };
