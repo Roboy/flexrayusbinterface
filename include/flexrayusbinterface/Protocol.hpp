@@ -133,7 +133,7 @@ public:
 
               std::unique_lock<boost::shared_mutex> _{ read_mutex };
               Parser<DatasetSize * sizeof(WORD)>{}.add(ganglion_data).add(ganglions).read(buffer);
-              activeGanglionsMask = ganglions;
+              activeGanglionsMask = (ganglions >> 3);
             },
             [](FtResult) {});
   }

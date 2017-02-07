@@ -6,13 +6,13 @@
 #include "flexrayusbinterface/Protocol.hpp"
 #include "flexrayusbinterface/Range.hpp"
 
-FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& channel, FlexRayBus&& bus)
-  : protocol{ new Protocol<>{ std::move(channel) } }
-  , bus{ std::move(bus) }
+FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& usb_channel, FlexRayBus&& flex_bus)
+  : protocol{ new Protocol<>{ std::move(usb_channel) } }
+  , bus{ std::move(flex_bus) }
   , slots(protocol->NumberOfGanglions)
   , stop_work{ new std::promise<void>{} }
 {
-  auto _protocol = protocol.get();
+  Protocol<>* _protocol = protocol.get();
   worker = std::async(std::launch::async,
                       [_protocol](std::future<void> stop) {
                         while (stop.wait_for(std::chrono::seconds{ 0 }) != std::future_status::ready)
@@ -28,15 +28,24 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& channel, FlexRay
       muscle_slots.emplace_back(std::move(*protocol->get_slot(i, j)));
   }
 
-  for (auto&& muscle_iter : bus.muscles)
-  {
-    auto ganglion_id = std::get<0>(muscle_iter.second);
-    auto muscle_id = std::get<1>(muscle_iter.second);
-    Muscle& muscle = std::get<2>(muscle_iter.second);
-    if (std::get<0>(muscle.controllers))
+  for (auto&& ganglion_iter : bus.ganglions) {
+    for (auto&& muscle_iter : ganglion_iter.second.muscles)
     {
-      PositionCtrl& controller = *std::get<0>(muscle.controllers);
-      init(comsControllerMode::Position, controller.parameters(), ganglion_id, muscle_id);
+      auto ganglion_id = ganglion_iter.first;
+      auto muscle_id = muscle_iter.first;
+      Muscle& muscle = muscle_iter.second;
+      if (auto& controller = std::get<0>(muscle.controllers))
+      {
+        init(comsControllerMode::Position, (*controller).parameters(), ganglion_id, muscle_id);
+      }
+      if (auto& controller = std::get<1>(muscle.controllers))
+      {
+        init(comsControllerMode::Velocity, (*controller).parameters(), ganglion_id, muscle_id);
+      }
+      if (auto& controller = std::get<2>(muscle.controllers))
+      {
+        init(comsControllerMode::Force, (*controller).parameters(), ganglion_id, muscle_id);
+      }
     }
   }
 }

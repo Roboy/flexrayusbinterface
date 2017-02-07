@@ -4,8 +4,8 @@
 #include <tuple>
 #include <unordered_map>
 
-#include <boost/optional.hpp>
 #include <units.h>
+#include <boost/optional.hpp>
 
 #include "flexrayusbinterface/CommunicationData.h"
 
@@ -104,9 +104,10 @@ public:
   {
   }
 
-  Controller(int32_t outputNegMax, int32_t outputPosMax, float timePeriod, float radians_per_encoder_count, float Pgain, float Igain, float Dgain, float forward_gain,
-             float dead_band, float integral, float integral_pos_min, float integral_pos_max, control_t sp_neg_max,
-             control_t sp_pos_max, torque_t torque_constant, spring_t spring)
+  Controller(int32_t outputNegMax, int32_t outputPosMax, float timePeriod, float radians_per_encoder_count, float Pgain,
+             float Igain, float Dgain, float forward_gain, float dead_band, float integral, float integral_pos_min,
+             float integral_pos_max, control_t sp_neg_max, control_t sp_pos_max, torque_t torque_constant,
+             spring_t spring)
     : outputNegMax{ outputNegMax }
     , outputPosMax{ outputPosMax }
     , timePeriod{ timePeriod }
@@ -224,7 +225,7 @@ struct FlexRayBus
   container_t ganglions;
   muscle_map_t muscles;
 
-  inline FlexRayBus()
+  inline explicit FlexRayBus()
   {
   }
 
@@ -236,4 +237,10 @@ struct FlexRayBus
       for (auto&& muscle : ganglion.second.muscles)
         muscles.emplace(muscle.second.id, std::forward_as_tuple(ganglion.first, muscle.first, std::ref(muscle.second)));
   }
+
+  FlexRayBus(FlexRayBus const&) = delete;
+  FlexRayBus& operator=(FlexRayBus const&) = delete;
+
+  FlexRayBus(FlexRayBus&&) = default;
+  FlexRayBus& operator=(FlexRayBus&&) = default;
 };
