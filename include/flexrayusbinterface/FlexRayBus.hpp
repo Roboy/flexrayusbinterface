@@ -104,12 +104,13 @@ public:
   {
   }
 
-  Controller(int32_t outputNegMax, int32_t outputPosMax, float timePeriod, float Pgain, float Igain, float Dgain, float forward_gain,
+  Controller(int32_t outputNegMax, int32_t outputPosMax, float timePeriod, float radians_per_encoder_count, float Pgain, float Igain, float Dgain, float forward_gain,
              float dead_band, float integral, float integral_pos_min, float integral_pos_max, control_t sp_neg_max,
              control_t sp_pos_max, torque_t torque_constant, spring_t spring)
     : outputNegMax{ outputNegMax }
     , outputPosMax{ outputPosMax }
     , timePeriod{ timePeriod }
+    , radians_per_encoder_count{ radians_per_encoder_count }
     , Pgain{ Pgain }
     , Igain{ Igain }
     , Dgain{ Dgain }
@@ -157,6 +158,7 @@ private:
   int32_t outputNegMax;
   int32_t outputPosMax;
   float timePeriod;
+  float radians_per_encoder_count;
   float Pgain;
   float Igain;
   float Dgain;

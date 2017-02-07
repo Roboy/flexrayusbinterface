@@ -34,7 +34,11 @@ struct convert<PositionCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["P_gain"].as<float>(),
+    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
+                 node["output_neg_max"].as<int32_t>(),
+                 node["time_period"].as<float>(),
+                 node["rad_per_encoder_count"].as<float>(),
+                 node["P_gain"].as<float>(),
                  node["I_gain"].as<float>(),
                  node["D_gain"].as<float>(),
                  node["forward_gain"].as<float>(),
@@ -61,7 +65,11 @@ struct convert<VelocityCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["P_gain"].as<float>(),
+    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
+                 node["output_neg_max"].as<int32_t>(),
+                 node["time_period"].as<float>(),
+                 node["rad_per_encoder_count"].as<float>(),
+                 node["P_gain"].as<float>(),
                  node["I_gain"].as<float>(),
                  node["D_gain"].as<float>(),
                  node["forward_gain"].as<float>(),
@@ -88,7 +96,11 @@ struct convert<ForceCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["P_gain"].as<float>(),
+    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
+                 node["output_neg_max"].as<int32_t>(),
+                 node["time_period"].as<float>(),
+                 node["rad_per_encoder_count"].as<float>(),
+                 node["P_gain"].as<float>(),
                  node["I_gain"].as<float>(),
                  node["D_gain"].as<float>(),
                  node["forward_gain"].as<float>(),
@@ -156,12 +168,17 @@ struct convert<FlexRayBus>
   static bool decode(Node const& node, FlexRayBus& rhs)
   {
     rhs.serial_number = node["serial"].as<std::string>();
+    rhs.ganglions.clear();
+    rhs.muscles.clear();
     for (int i = 0; i < 6; ++i)
     {
       auto& ganglion = node[std::string{ "ganglion " } + std::to_string(i)];
       if (ganglion)
         rhs.ganglions[i] = ganglion.as<Ganglion>();
     }
+    for (auto&& ganglion_it: rhs.ganglions)
+        for (auto&& muscle_it: ganglion_it.second.muscles)
+            rhs.muscles.emplace(muscle_it.second.id, std::forward_as_tuple(ganglion_it.first, muscle_it.first, std::ref(muscle_it.second)));
     return true;
   }
 };

@@ -60,7 +60,7 @@ add_library(libflexrayusbinterface
 )
 
 target_link_libraries( libflexrayusbinterface ${libftd2xx_LIBRARY} -ldl)
-target_link_libraries(libflexrayusbinterface ${YAML_CPP_LIBRARIES})
+target_link_libraries(libflexrayusbinterface ${YAML_CPP_LIBRARIES} -ldl)
 target_link_libraries(libflexrayusbinterface ${Boost_LIBRARIES})
 
 #==============================================================================

@@ -1,5 +1,5 @@
 FlexRay:
-  serial: FTVXQGER,
+  serial: FTVXQGER
 
   _SoftSpring: &SOFT
     constant: 0.3
@@ -12,6 +12,10 @@ FlexRay:
       id: left_biceps
 
       Force:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
         P_gain: 70.0
         I_gain: 0.0
         D_gain: 0.0
@@ -26,6 +30,10 @@ FlexRay:
         spring: *SOFT
       
       Velocity:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
         P_gain: 200.0
         I_gain: 0.0
         D_gain: 0.0
@@ -38,6 +46,10 @@ FlexRay:
         sp_pos_max: 100.0
 
       Position:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
         P_gain: 100.0
         I_gain: 0.0
         D_gain: 0.0

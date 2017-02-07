@@ -22,12 +22,12 @@ public:
 
   inline auto read_muscle(uint32_t ganglion, uint32_t muscle) -> muscleState_t
   {
-    return protocol.read_muscle(ganglion, muscle);
+    return protocol->read_muscle(ganglion, muscle);
   }
 
   inline auto connected_ganglions() -> std::bitset<Protocol<>::NumberOfGanglions>
   {
-    return protocol.connected_ganglions();
+    return protocol->connected_ganglions();
   }
 
   inline void set(uint32_t ganglion, uint32_t motor, ControlMode controller, float param)
@@ -40,16 +40,19 @@ public:
 
   virtual ~FlexRayHardwareInterface();
 
-  FlexRayHardwareInterface(UsbChannel&& channel, FlexRayBus&& bus);
+  FlexRayHardwareInterface(FlexRayHardwareInterface&&) = default;
+  FlexRayHardwareInterface& operator=(FlexRayHardwareInterface&&) = default;
 
-  static constexpr float radPerEncoderCount{2 * 3.14159265359 / ( 4 * 512 * 53.0)};
+  static auto connect(FlexRayBus& bus) -> variant<FlexRayHardwareInterface, FtResult>;
+
 
 private:
+  FlexRayHardwareInterface(UsbChannel&& channel, FlexRayBus&& bus);
   void init(comsControllerMode mode, control_Parameters_t params, uint32_t ganglion, uint32_t motor);
 
-  Protocol<> protocol;
+  std::unique_ptr<Protocol<>> protocol;
   FlexRayBus bus;
   std::vector<std::vector<CompletionGuard<Protocol<>::input_t>>> slots;
-  std::promise<void> stop_work;
+  std::unique_ptr<std::promise<void>> stop_work;
   std::future<void> worker;
 };
