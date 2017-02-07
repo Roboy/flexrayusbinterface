@@ -35,7 +35,7 @@ find_package(libftd2xx REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES libflexrayusbinterface
-        DEPENDS libftd2xx Mapbox)
+        DEPENDS libftd2xx Mapbox Units Boost YAML_CPP)
 
 
 include_directories(

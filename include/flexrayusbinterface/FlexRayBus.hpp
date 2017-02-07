@@ -1,14 +1,22 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <tuple>
+#include <unordered_map>
 
 #include <boost/optional.hpp>
-#include "units.h"
+#include <units.h>
 
-#include "CommunicationData.h"
-#include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
+#include "flexrayusbinterface/CommunicationData.h"
+
+enum class ControlMode : int
+{
+  Raw = comsControllerMode::Raw,
+  Torque = comsControllerMode::Torque,
+  Velocity = comsControllerMode::Velocity,
+  Position = comsControllerMode::Position,
+  Force = comsControllerMode::Force
+};
 
 template <typename... T>
 using TupleOfOptional = std::tuple<boost::optional<T>...>;
@@ -33,7 +41,8 @@ struct Spring
   force_per_area_t quadratic;
   force_per_volume_t cubic;
 
-  Spring(force_t constant = {}, force_per_length_t linear = {}, force_per_area_t quadratic = {}, force_per_volume_t cubic = {})
+  Spring(force_t constant = {}, force_per_length_t linear = {}, force_per_area_t quadratic = {},
+         force_per_volume_t cubic = {})
     : constant{ constant }, linear{ linear }, quadratic{ quadratic }, cubic{ cubic }
   {
   }
@@ -45,58 +54,63 @@ struct Spring
   }
 };
 
-template <FlexRayHardwareInterface::Controller C>
+template <ControlMode C>
 struct control_unit_traits;
 
 template <>
-struct control_unit_traits<FlexRayHardwareInterface::Controller::Raw>
+struct control_unit_traits<ControlMode::Raw>
 {
   using unit = units::dimensionless::dimensionless;
 };
 
 template <>
-struct control_unit_traits<FlexRayHardwareInterface::Controller::Position>
+struct control_unit_traits<ControlMode::Position>
 {
   using unit = units::angle::radian;
 };
 
 template <>
-struct control_unit_traits<FlexRayHardwareInterface::Controller::Velocity>
+struct control_unit_traits<ControlMode::Velocity>
 {
   using unit = units::angular_velocity::radians_per_second;
 };
 
 template <>
-struct control_unit_traits<FlexRayHardwareInterface::Controller::Torque>
+struct control_unit_traits<ControlMode::Torque>
 {
   using unit = units::torque::newton_meter;
 };
 
 template <>
-struct control_unit_traits<FlexRayHardwareInterface::Controller::Force>
+struct control_unit_traits<ControlMode::Force>
 {
   using unit = units::force::newton;
 };
 
-template <FlexRayHardwareInterface::Controller C>
+template <ControlMode C>
 using control_unit = typename control_unit_traits<C>::unit;
 
-template <FlexRayHardwareInterface::Controller C>
+template <ControlMode C>
 class Controller
 {
 public:
-  static constexpr FlexRayHardwareInterface::Controller controller = C;
+  static constexpr ControlMode controller = C;
   using control_t = units::unit_t<control_unit<C>>;
   using torque_t =
       units::unit_t<units::compound_unit<units::torque::newton_meter, units::inverse<units::current::ampere>>>;
   using spring_t = Spring<units::length::meter, units::force::newton>;
 
-  Controller() {}
+  Controller()
+  {
+  }
 
-  Controller(float Pgain, float Igain, float Dgain, float forward_gain, float dead_band, float integral,
-             float integral_pos_min, float integral_pos_max, control_t sp_pos_min, control_t sp_pos_max,
-             torque_t torque_constant, spring_t spring)
-    : Pgain{ Pgain }
+  Controller(int32_t outputNegMax, int32_t outputPosMax, float timePeriod, float Pgain, float Igain, float Dgain, float forward_gain,
+             float dead_band, float integral, float integral_pos_min, float integral_pos_max, control_t sp_neg_max,
+             control_t sp_pos_max, torque_t torque_constant, spring_t spring)
+    : outputNegMax{ outputNegMax }
+    , outputPosMax{ outputPosMax }
+    , timePeriod{ timePeriod }
+    , Pgain{ Pgain }
     , Igain{ Igain }
     , Dgain{ Dgain }
     , forward_gain{ forward_gain }
@@ -104,7 +118,7 @@ public:
     , integral{ integral }
     , integral_pos_min{ integral_pos_min }
     , integral_pos_max{ integral_pos_max }
-    , sp_pos_min{ sp_pos_min }
+    , sp_neg_max{ sp_neg_max }
     , sp_pos_max{ sp_pos_max }
     , torque_constant{ torque_constant }
     , spring{ spring }
@@ -114,8 +128,13 @@ public:
   auto parameters() const -> control_Parameters_t
   {
     control_Parameters_t p;
-    p.spNegMax = sp_pos_min.template to<decltype(p.spNegMax)>();
-    p.spPosMax = sp_pos_max.template to<decltype(p.spPosMax)>();
+    p.tag = 0;
+    p.outputNegMax = outputNegMax;
+    p.outputPosMax = outputPosMax;
+    p.timePeriod = timePeriod;
+    p.timePeriod = 100;
+    p.spNegMax = units::unit_cast<decltype(p.spNegMax)>(sp_neg_max);
+    p.spPosMax = units::unit_cast<decltype(p.spPosMax)>(sp_pos_max);
 
     p.params.pidParameters.integral = integral;
     p.params.pidParameters.pgain = Pgain;
@@ -126,15 +145,18 @@ public:
     p.params.pidParameters.IntegralPosMax = integral_pos_max;
     p.params.pidParameters.IntegralNegMax = integral_pos_min;
 
-    p.polyPar[0] = spring.constant.template to<decltype(p.polyPar[0])>();
-    p.polyPar[1] = spring.linear.template to<decltype(p.polyPar[1])>();
-    p.polyPar[2] = spring.quadratic.template to<decltype(p.polyPar[2])>();
-    p.polyPar[3] = spring.cubic.template to<decltype(p.polyPar[3])>();
+    p.polyPar[0] = units::unit_cast<float>(spring.constant);
+    p.polyPar[1] = units::unit_cast<float>(spring.linear);
+    p.polyPar[2] = units::unit_cast<float>(spring.quadratic);
+    p.polyPar[3] = units::unit_cast<float>(spring.cubic);
 
     return p;
   }
 
 private:
+  int32_t outputNegMax;
+  int32_t outputPosMax;
+  float timePeriod;
   float Pgain;
   float Igain;
   float Dgain;
@@ -143,21 +165,21 @@ private:
   float integral;
   float integral_pos_min;
   float integral_pos_max;
-  control_t sp_pos_min;
+  control_t sp_neg_max;
   control_t sp_pos_max;
   torque_t torque_constant;
   spring_t spring;
 };
 
-using RawCtrl = Controller<FlexRayHardwareInterface::Controller::Raw>;
+using RawCtrl = Controller<ControlMode::Raw>;
 
-using PositionCtrl = Controller<FlexRayHardwareInterface::Controller::Position>;
+using PositionCtrl = Controller<ControlMode::Position>;
 
-using VelocityCtrl = Controller<FlexRayHardwareInterface::Controller::Velocity>;
+using VelocityCtrl = Controller<ControlMode::Velocity>;
 
-using TorqueCtrl = Controller<FlexRayHardwareInterface::Controller::Torque>;
+using TorqueCtrl = Controller<ControlMode::Torque>;
 
-using ForceCtrl = Controller<FlexRayHardwareInterface::Controller::Force>;
+using ForceCtrl = Controller<ControlMode::Force>;
 
 struct Muscle
 {
@@ -192,21 +214,24 @@ struct FlexRayBus
 {
   using ganglion_id_t = uint8_t;
   using container_t = std::unordered_map<ganglion_id_t, Ganglion>;
-  using muscle_map_t = std::unordered_map<std::string, std::tuple<ganglion_id_t, Ganglion::muscle_id_t, std::reference_wrapper<Muscle>>>;
+  using muscle_map_t =
+      std::unordered_map<std::string, std::tuple<ganglion_id_t, Ganglion::muscle_id_t, std::reference_wrapper<Muscle>>>;
 
   std::string serial_number;
 
   container_t ganglions;
   muscle_map_t muscles;
 
-  inline FlexRayBus() {}
+  inline FlexRayBus()
+  {
+  }
 
   template <typename GanglionIteratorBegin, typename GanglionIteratorEnd>
   FlexRayBus(std::string serial_number, GanglionIteratorBegin ibegin, GanglionIteratorEnd iend)
     : serial_number{ std::move(serial_number) }, ganglions(ibegin, iend)
   {
-      for (auto&& ganglion: ganglions)
-          for (auto&& muscle: ganglion.second.muscles)
-              muscles.emplace(muscle.second.id, std::forward_as_tuple(ganglion.first, muscle.first, std::ref(muscle.second)));
+    for (auto&& ganglion : ganglions)
+      for (auto&& muscle : ganglion.second.muscles)
+        muscles.emplace(muscle.second.id, std::forward_as_tuple(ganglion.first, muscle.first, std::ref(muscle.second)));
   }
 };

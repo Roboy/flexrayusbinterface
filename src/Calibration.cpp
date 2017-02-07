@@ -1,11 +1,11 @@
 #include <chrono>
 #include <thread>
 
+#include "flexrayusbinterface/FlexRayBus.hpp"
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
 void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint32_t motor_id, int controlmode)
 {
-  flex_ray.initVelocityControl(ganglion_id, motor_id);
   uint32_t count = 0;
   float aux = 0;
   uint32_t p = 0;
@@ -13,14 +13,14 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
   float tendonDisplacement_t[3];
   float tendonDisplacement_t2[10000];
 
-  flex_ray.set(ganglion_id, motor_id, FlexRayHardwareInterface::Controller::Velocity, 0);
+  flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, 0);
   std::this_thread::sleep_for(std::chrono::milliseconds{ 300 });
   tendonDisplacement_t[0] =
       flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
   uint32_t i = 1;
   for (i = 1; i < 3; i++)
   {
-    flex_ray.set(ganglion_id, motor_id, FlexRayHardwareInterface::Controller::Velocity, 3);
+    flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, 3);
     std::this_thread::sleep_for(std::chrono::milliseconds{ 500 });
     tendonDisplacement_t[i] = flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;
   }
@@ -37,7 +37,7 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
 
   do
   {
-    flex_ray.set(ganglion_id, motor_id, FlexRayHardwareInterface::Controller::Velocity, vel);
+    flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, vel);
     std::this_thread::sleep_for(std::chrono::milliseconds{ 300 });
     tendonDisplacement_t2[t + 1] = flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;
     t++;
@@ -66,24 +66,7 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
   else
   {
     vel = 0;
-    flex_ray.set(ganglion_id, motor_id, FlexRayHardwareInterface::Controller::Velocity, vel);
+    flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, vel);
     std::this_thread::sleep_for(std::chrono::seconds{ 2 });
-
-    flex_ray.initVelocityControl(ganglion_id, motor_id, true);
-
-    flex_ray.initVelocityControl(ganglion_id, motor_id, false);
-
-    switch (controlmode)
-    {
-      case 1:
-        flex_ray.initPositionControl(ganglion_id, motor_id);
-        break;
-      case 2:
-        flex_ray.initVelocityControl(ganglion_id, motor_id);
-        break;
-      case 3:
-        flex_ray.initForceControl(ganglion_id, motor_id);
-        break;
-    }
   }
 }
