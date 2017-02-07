@@ -203,7 +203,23 @@ private:
             [&](Enqueue& cmd) mutable {
               if (static_cast<bool>(dynamic_slot_completion))
                 return;
-              command.params = cmd.params;
+              control_Parameters_t& ps = command.params = cmd.params; 
+              std::cout << "Initialising muscle " << muscle_id << " of ganglion " << ganglion_id << " with the following: " << std::endl;
+              std::cout << "   - outputPosMax : " << ps.outputPosMax << std::endl;
+              std::cout << "   - outputNegMax : " << ps.outputNegMax << std::endl;
+              std::cout << "   - timePeriod : " << ps.timePeriod << std::endl;
+              std::cout << "   - radPerEncoderCount : " << ps.radPerEncoderCount << std::endl;
+              std::cout << "   - P_gain : " << ps.params.pidParameters.pgain << std::endl;
+              std::cout << "   - I_gain : " << ps.params.pidParameters.igain << std::endl;
+              std::cout << "   - D_gain : " << ps.params.pidParameters.dgain << std::endl;
+              std::cout << "   - forwardGain : " << ps.params.pidParameters.forwardGain << std::endl;
+              std::cout << "   - deadBand : " << ps.params.pidParameters.deadBand << std::endl;
+              std::cout << "   - integral : " << ps.params.pidParameters.integral << std::endl;
+              std::cout << "   - integral_pos_min : " << ps.params.pidParameters.IntegralNegMax << std::endl;
+              std::cout << "   - integral_pos_max : " << ps.params.pidParameters.IntegralPosMax << std::endl;
+              std::cout << "   - sp_pos_min : " << ps.spNegMax << std::endl;
+              std::cout << "   - sp_pos_max : " << ps.spPosMax << std::endl;
+              std::cout << "   - torqueConstant : " << ps.torqueConstant << std::endl;
               dynamic_slot_completion =
                   completion_data_t{ std::move(message.first),
                                      static_cast<comsOperationMode>(frame.OperationMode[muscle_id]),

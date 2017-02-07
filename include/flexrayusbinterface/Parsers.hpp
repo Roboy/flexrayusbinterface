@@ -34,8 +34,8 @@ struct convert<PositionCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
-                 node["output_neg_max"].as<int32_t>(),
+    rhs = Inner{ node["output_neg_max"].as<int32_t>(),
+                 node["output_pos_max"].as<int32_t>(),
                  node["time_period"].as<float>(),
                  node["rad_per_encoder_count"].as<float>(),
                  node["P_gain"].as<float>(),
@@ -65,8 +65,8 @@ struct convert<VelocityCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
-                 node["output_neg_max"].as<int32_t>(),
+    rhs = Inner{ node["output_neg_max"].as<int32_t>(),
+                 node["output_pos_max"].as<int32_t>(),
                  node["time_period"].as<float>(),
                  node["rad_per_encoder_count"].as<float>(),
                  node["P_gain"].as<float>(),
@@ -96,8 +96,9 @@ struct convert<ForceCtrl>
 
   static bool decode(Node const& node, Inner& rhs)
   {
-    rhs = Inner{ node["output_pos_max"].as<int32_t>(),
-                 node["output_neg_max"].as<int32_t>(),
+      std::cout << " >>>>> " << (node["rad_per_encoder_count"].as<float>()) << std::endl;
+    rhs = Inner{ node["output_neg_max"].as<int32_t>(),
+                 node["output_pos_max"].as<int32_t>(),
                  node["time_period"].as<float>(),
                  node["rad_per_encoder_count"].as<float>(),
                  node["P_gain"].as<float>(),

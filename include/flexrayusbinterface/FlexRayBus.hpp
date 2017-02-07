@@ -134,9 +134,11 @@ public:
     p.outputNegMax = outputNegMax;
     p.outputPosMax = outputPosMax;
     p.timePeriod = timePeriod;
+    p.radPerEncoderCount = radians_per_encoder_count;
     p.timePeriod = 100;
     p.spNegMax = units::unit_cast<decltype(p.spNegMax)>(sp_neg_max);
     p.spPosMax = units::unit_cast<decltype(p.spPosMax)>(sp_pos_max);
+    p.torqueConstant = units::unit_cast<decltype(p.torqueConstant)>(torque_constant);
 
     p.params.pidParameters.integral = integral;
     p.params.pidParameters.pgain = Pgain;
