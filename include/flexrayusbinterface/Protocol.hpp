@@ -179,6 +179,21 @@ private:
                   [&](Send::Run& run) {
                     frame.sp[muscle_id] = run.pos;
                     frame.OperationMode[muscle_id] = comsOperationMode::Run;
+                    std::cout << "Moving " << ganglion_id << ":" << muscle_id << " ";
+                    switch (cmd.controller) {
+                    case comsControllerMode::Position:
+                        std::cout << "to position " << run.pos;
+                        break;
+                    case comsControllerMode::Velocity:
+                        std::cout << "with velocity" << run.pos;
+                        break;
+                    case comsControllerMode::Force:
+                        std::cout << "to hold " << run.pos << " force";
+                        break;
+                    default:
+                        std::cout << "error";
+                    }
+                    std::cout << std::endl;
                   },
                   [&](Send::Disable) { frame.OperationMode[muscle_id] = comsOperationMode::Disable; });
               frame.ControlMode[muscle_id] = cmd.controller;

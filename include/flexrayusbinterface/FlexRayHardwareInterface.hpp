@@ -32,6 +32,7 @@ public:
 
   inline void set(uint32_t ganglion, uint32_t motor, ControlMode controller, float param)
   {
+      std::cout << static_cast<comsControllerMode>(controller) << std::endl;
     slots[ganglion][motor] = std::move(slots[ganglion][motor])
                                  .enqueue(Send{ Send::Run{ param }, static_cast<comsControllerMode>(controller) })
                                  .get()

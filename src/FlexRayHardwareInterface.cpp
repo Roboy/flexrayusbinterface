@@ -31,19 +31,23 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& usb_channel, Fle
   for (auto&& ganglion_iter : bus.ganglions) {
     for (auto&& muscle_iter : ganglion_iter.second.muscles)
     {
-      auto ganglion_id = ganglion_iter.first;
-      auto muscle_id = muscle_iter.first;
+      int ganglion_id = ganglion_iter.first;
+      int muscle_id = muscle_iter.first;
       Muscle& muscle = muscle_iter.second;
+      std::cout << "Initializing muscle " << muscle_iter.second.id << std::endl;
       if (auto& controller = std::get<0>(muscle.controllers))
       {
+          std::cout << "Initializing position control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
         init(comsControllerMode::Position, (*controller).parameters(), ganglion_id, muscle_id);
       }
       if (auto& controller = std::get<1>(muscle.controllers))
       {
+          std::cout << "Initializing velocity control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
         init(comsControllerMode::Velocity, (*controller).parameters(), ganglion_id, muscle_id);
       }
       if (auto& controller = std::get<2>(muscle.controllers))
       {
+          std::cout << "Initializing force control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
         init(comsControllerMode::Force, (*controller).parameters(), ganglion_id, muscle_id);
       }
     }
