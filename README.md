@@ -8,6 +8,7 @@ In order to build this library you will need:
 - cmake 
 - GNU Make
 - Boost version >= 1.58
+- [Catkin](https://github.com/ros/catkin) (get the newest available) or `catkin_make` which comes with ROS jade or later
 - Other library dependencies which need to be installed by executing the script:
 ```bash
 ./install_deps.sh
