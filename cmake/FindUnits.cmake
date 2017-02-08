@@ -7,7 +7,7 @@
 
 
 find_path(Units_INCLUDE_DIR NAMES units.h
-	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/Units/include/ 
+	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/third_party/include/ 
 )
 
 include(FindPackageHandleStandardArgs)

@@ -7,7 +7,7 @@
 
 
 find_path(Mapbox_INCLUDE_DIR NAMES mapbox/variant.hpp
-	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/Mapbox/include/ 
+	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/third_party/include
 )
 
 include(FindPackageHandleStandardArgs)
