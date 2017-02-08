@@ -7,11 +7,11 @@
 # libftd2xx_LIBRARY - library
 
 FIND_LIBRARY(libftd2xx_LIBRARY NAMES ftd2xx
-	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/build/
+	PATHS ${PROJECT_SOURCE_DIR}/third_party/ftd2xx/lib
 )
 
 FIND_PATH(libftd2xx_INCLUDE_DIRS NAMES ftd2xx.h 
-	PATHS ${PROJECT_SOURCE_DIR}/../flexrayusbinterface/lib/libftd2xx-x86_64-1.3.6/ 
+	PATHS ${PROJECT_SOURCE_DIR}/third_party/ftd2xx/include
 )
 
 MARK_AS_ADVANCED(
