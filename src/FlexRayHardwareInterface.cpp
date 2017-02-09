@@ -9,7 +9,6 @@
 FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& usb_channel, FlexRayBus&& flex_bus)
   : protocol{ new Protocol<>{ std::move(usb_channel) } }
   , bus{ std::move(flex_bus) }
-  , slots(protocol->NumberOfGanglions)
   , stop_work{ new std::promise<void>{} }
 {
   Protocol<>* _protocol = protocol.get();
@@ -21,36 +20,25 @@ FlexRayHardwareInterface::FlexRayHardwareInterface(UsbChannel&& usb_channel, Fle
                         }
                       },
                       stop_work->get_future());
-  for (std::size_t i = 0; i < protocol->NumberOfGanglions; ++i)
-  {
-    auto& muscle_slots = slots[i];
-    for (std::size_t j = 0; j < protocol->MusclesPerGanglion; ++j)
-      muscle_slots.emplace_back(std::move(*protocol->get_slot(i, j)));
-  }
 
-  for (auto&& ganglion_iter : bus.ganglions) {
-    for (auto&& muscle_iter : ganglion_iter.second.muscles)
-    {
-      int ganglion_id = ganglion_iter.first;
-      int muscle_id = muscle_iter.first;
-      Muscle& muscle = muscle_iter.second;
-      std::cout << "Initializing muscle " << muscle_iter.second.id << std::endl;
-      if (auto& controller = std::get<0>(muscle.controllers))
-      {
-          std::cout << "Initializing position control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
-        init(comsControllerMode::Position, (*controller).parameters(), ganglion_id, muscle_id);
-      }
-      if (auto& controller = std::get<1>(muscle.controllers))
-      {
-          std::cout << "Initializing velocity control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
-        init(comsControllerMode::Velocity, (*controller).parameters(), ganglion_id, muscle_id);
-      }
-      if (auto& controller = std::get<2>(muscle.controllers))
-      {
-          std::cout << "Initializing force control for muscle " << muscle_id << " of ganglion " << ganglion_id << std::endl;
-        init(comsControllerMode::Force, (*controller).parameters(), ganglion_id, muscle_id);
-      }
-    }
+  for (auto&& muscle_iter : bus.muscles)
+  {
+    auto ganglion_id = std::get<0>(muscle_iter.second);
+    auto muscle_id = std::get<1>(muscle_iter.second);
+    Muscle& muscle = std::get<2>(muscle_iter.second);
+
+    auto slot = protocol->get_slot(ganglion_id, muscle_id);
+    if (!slot)
+      continue;
+
+    auto& slot_guard = slots[ganglion_id].emplace(muscle_id, std::move(*slot)).first->second;
+
+    if (auto& controller = std::get<0>(muscle.controllers))
+      init(comsControllerMode::Position, (*controller).parameters(), slot_guard);
+    if (auto& controller = std::get<1>(muscle.controllers))
+      init(comsControllerMode::Velocity, (*controller).parameters(), slot_guard);
+    if (auto& controller = std::get<2>(muscle.controllers))
+      init(comsControllerMode::Force, (*controller).parameters(), slot_guard);
   }
 }
 
@@ -60,18 +48,21 @@ FlexRayHardwareInterface::~FlexRayHardwareInterface()
     stop_work->set_value();
 }
 
-auto FlexRayHardwareInterface::connect(FlexRayBus& bus) -> variant<FlexRayHardwareInterface, FtResult>
+auto FlexRayHardwareInterface::connect(FlexRayBus&& bus)
+    -> variant<FlexRayHardwareInterface, std::pair<FlexRayBus, FtResult>>
 {
   return UsbChannel::open(bus.serial_number)
       .match(
-          [&bus](UsbChannel& usb) -> variant<FlexRayHardwareInterface, FtResult> {
+          [&bus](UsbChannel& usb) -> variant<FlexRayHardwareInterface, std::pair<FlexRayBus, FtResult>> {
             return FlexRayHardwareInterface{ std::move(usb), std::move(bus) };
           },
-          [](FtResult err) -> variant<FlexRayHardwareInterface, FtResult> { return err; });
+          [&bus](FtResult err) -> variant<FlexRayHardwareInterface, std::pair<FlexRayBus, FtResult>> {
+            return std::make_pair(std::move(bus), err);
+          });
 }
 
-void FlexRayHardwareInterface::init(comsControllerMode mode, control_Parameters_t params, uint32_t ganglion,
-                                    uint32_t motor)
+void FlexRayHardwareInterface::init(comsControllerMode mode, control_Parameters_t params,
+                                    CompletionGuard<Protocol<>::input_t>& muscle)
 {
-  slots[ganglion][motor] = std::move(slots[ganglion][motor]).enqueue(Enqueue{ mode, params }).get().first;
+  muscle = std::move(muscle).enqueue(Enqueue{ mode, params }).get().first;
 }
