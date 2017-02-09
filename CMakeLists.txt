@@ -56,7 +56,6 @@ add_library(libflexrayusbinterface
     src/UsbChannel.cpp
     src/Calibration.cpp
     src/Muscle.cpp
-    src/Protocol.cpp
 )
 
 target_link_libraries( libflexrayusbinterface ${libftd2xx_LIBRARY} -ldl)
