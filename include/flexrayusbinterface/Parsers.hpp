@@ -178,8 +178,11 @@ struct convert<FlexRayBus>
         rhs.ganglions[i] = ganglion.as<Ganglion>();
     }
     for (auto&& ganglion_it: rhs.ganglions)
-        for (auto&& muscle_it: ganglion_it.second.muscles)
+        for (auto&& muscle_it: ganglion_it.second.muscles) {
+            if (rhs.muscles.find(muscle_it.second.id) != std::end(rhs.muscles))
+                return false;
             rhs.muscles.emplace(muscle_it.second.id, std::forward_as_tuple(ganglion_it.first, muscle_it.first, std::ref(muscle_it.second)));
+        }
     return true;
   }
 };
