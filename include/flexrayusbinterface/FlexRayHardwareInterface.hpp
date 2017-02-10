@@ -28,8 +28,36 @@ public:
     ControllerNotInitialized
   };
 
-  inline auto read_muscle(uint32_t ganglion, uint32_t muscle) -> muscleState_t
+  enum class ReadError {
+      GanglionNotAttached,
+      MuscleDoesNotExist
+  };
+
+  inline auto read_muscle(uint32_t ganglion, uint32_t muscle) -> variant<muscleState_t, ReadError>
   {
+    if (ganglion > Protocol<>::NumberOfGanglions || muscle > Protocol<>::MusclesPerGanglion)
+      return ReadError::MuscleDoesNotExist;
+    if (!protocol->connected_ganglions()[ganglion])
+      return ReadError::GanglionNotAttached;
+
+    return protocol->read_muscle(ganglion, muscle);
+  }
+
+  inline auto read_muscle(std::string const& muscle_name) -> variant<muscleState_t, ReadError>
+  {
+    auto muscle_location = bus.muscles.find(muscle_name);
+
+    if (muscle_location == std::end(bus.muscles))
+      return ReadError::MuscleDoesNotExist;
+
+    auto ganglion = std::get<0>(muscle_location->second);
+    auto muscle = std::get<1>(muscle_location->second);
+
+    if (ganglion > Protocol<>::NumberOfGanglions || muscle > Protocol<>::MusclesPerGanglion)
+      return ReadError::MuscleDoesNotExist;
+    if (!protocol->connected_ganglions()[ganglion])
+      return ReadError::GanglionNotAttached;
+
     return protocol->read_muscle(ganglion, muscle);
   }
 

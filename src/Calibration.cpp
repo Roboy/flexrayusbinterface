@@ -4,7 +4,7 @@
 #include "flexrayusbinterface/FlexRayBus.hpp"
 #include "flexrayusbinterface/FlexRayHardwareInterface.hpp"
 
-void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint32_t motor_id, int controlmode)
+void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint32_t motor_id)
 {
   uint32_t count = 0;
   float aux = 0;
@@ -16,17 +16,17 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
   flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, 0);
   std::this_thread::sleep_for(std::chrono::milliseconds{ 300 });
   tendonDisplacement_t[0] =
-      flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
+      flex_ray.read_muscle(ganglion_id, motor_id).get<muscleState_t>().tendonDisplacement / 32768.0f;  // tendon displacemnte iniziale
   uint32_t i = 1;
   for (i = 1; i < 3; i++)
   {
     flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, 3);
     std::this_thread::sleep_for(std::chrono::milliseconds{ 500 });
-    tendonDisplacement_t[i] = flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;
+    tendonDisplacement_t[i] = flex_ray.read_muscle(ganglion_id, motor_id).get<muscleState_t>().tendonDisplacement / 32768.0f;
   }
 
   uint32_t t = 0;
-  tendonDisplacement_t2[0] = flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;
+  tendonDisplacement_t2[0] = flex_ray.read_muscle(ganglion_id, motor_id).get<muscleState_t>().tendonDisplacement / 32768.0f;
 
   if (tendonDisplacement_t[2] < tendonDisplacement_t[0])
     vel = 3;
@@ -39,7 +39,7 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
   {
     flex_ray.set(ganglion_id, motor_id, ControlMode::Velocity, vel);
     std::this_thread::sleep_for(std::chrono::milliseconds{ 300 });
-    tendonDisplacement_t2[t + 1] = flex_ray.read_muscle(ganglion_id, motor_id).tendonDisplacement / 32768.0f;
+    tendonDisplacement_t2[t + 1] = flex_ray.read_muscle(ganglion_id, motor_id).get<muscleState_t>().tendonDisplacement / 32768.0f;
     t++;
 
     if (tendonDisplacement_t2[t] > tendonDisplacement_t2[t - 1])
@@ -61,7 +61,7 @@ void relaxSpring(FlexRayHardwareInterface& flex_ray, uint32_t ganglion_id, uint3
   } while (count != 4 && p != 3);
 
   if (p == 3)
-    relaxSpring(flex_ray, ganglion_id, motor_id, controlmode);
+    relaxSpring(flex_ray, ganglion_id, motor_id);
 
   else
   {
