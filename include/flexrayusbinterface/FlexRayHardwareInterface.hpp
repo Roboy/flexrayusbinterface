@@ -28,9 +28,10 @@ public:
     ControllerNotInitialized
   };
 
-  enum class ReadError {
-      GanglionNotAttached,
-      MuscleDoesNotExist
+  enum class ReadError
+  {
+    GanglionNotAttached,
+    MuscleDoesNotExist
   };
 
   inline auto read_muscle(uint32_t ganglion, uint32_t muscle) -> variant<muscleState_t, ReadError>
@@ -96,6 +97,14 @@ public:
     auto muscle = std::get<1>(muscle_location->second);
 
     return set(ganglion, muscle, controller, param);
+  }
+
+  inline auto get_muscle_names() -> std::vector<std::string>
+  {
+      std::vector<std::string> ret;
+      for (auto&& muscle: bus.muscles)
+          ret.emplace_back(muscle.first);
+      return ret;
   }
 
   virtual ~FlexRayHardwareInterface();
