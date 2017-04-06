@@ -1,0 +1,62 @@
+FlexRay:
+  serial: FTVXQGER
+
+  _SoftSpring: &SOFT
+    constant: 0.3
+    linear: 0.9
+    quadratic: 0.01
+    cubic: 0.002
+
+  ganglion 0:
+    muscle 0:
+      id: left_biceps
+
+      Force:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
+        P_gain: 70.0
+        I_gain: 0.0
+        D_gain: 0.0
+        forward_gain: 0.0
+        dead_band: 0.0
+        integral: 0.0
+        integral_pos_min: 0.0
+        integral_pos_max: 0.0
+        sp_pos_min: -100.0
+        sp_pos_max: 100.0
+        torque: 1.0
+        spring: *SOFT
+      
+      Velocity:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
+        P_gain: 200.0
+        I_gain: 0.0
+        D_gain: 0.0
+        forward_gain: 0.0
+        dead_band: 0.0
+        integral: 0.0
+        integral_pos_min: 0.0
+        integral_pos_max: 0.0
+        sp_pos_min: -100.0
+        sp_pos_max: 100.0
+
+      Position:
+        output_pos_max: 1000
+        output_neg_max: -1000
+        time_period: 100.0
+        rad_per_encoder_count: 0.00005
+        P_gain: 100.0
+        I_gain: 0.0
+        D_gain: 0.0
+        forward_gain: 0.0
+        dead_band: 0.0
+        integral: 0.0
+        integral_pos_min: 0.0
+        integral_pos_max: 0.0
+        sp_pos_min: -100.0
+        sp_pos_max: 100.0
