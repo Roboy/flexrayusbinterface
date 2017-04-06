@@ -41,6 +41,7 @@ serial: FTXYZABC
 ganglion 3: ganglion_3_repr # yaml code describing a Ganglion
 ganglion 1: ganglion_1_repr # yaml code describing a Ganglion
 ```
+__Note__: In order to list the connected FTDI devices, use the `list_ftdi_devices` tool which is built together with the library.
 
 In order for a `YAML::Node gang_repr` to be de-serialized into a `Ganglion` instance, it must be a mapping (`gang_repr.IsMap() == true`) containing the optional keys: `muscle 0`, `muscle 1`, `muscle 2`, `muscle 3` which define the properties of each respective muscle. Each of these keys, if present, must map to a `YAML::Node` which de-serializes into a `Muscle`.
 
