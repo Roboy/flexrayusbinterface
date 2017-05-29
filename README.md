@@ -5,7 +5,7 @@ It works through driver library [ftd2xx](http://www.ftdichip.com/Drivers/D2XX.ht
 ## Dependencies
 
 In order to build this library you will need:
-- cmake 
+- cmake
 - GNU Make
 - Boost version >= 1.58
 - [Catkin](https://github.com/ros/catkin) (get the newest available) or `catkin_make` which comes with ROS jade or later
@@ -15,7 +15,13 @@ In order to build this library you will need:
 ```
 
 ## Before running your program #
-__NOTE: We recommend copying the udev rules file to /etc/udev/rules.d/, otherwise the communication with the ftdi device will require running your program with `sudo`__
+__NOTE: We recommend copying the udev rules file to /etc/udev/rules.d/, otherwise the communication with the ftdi device will require you to manually unload the ftdi_sio kernel modules whenever you rep-plug the USB cable.`__
+
+
+The udev rules currently act on every device of the same type (go check them out). If you would like to limit it to a specific device with a unique serial, add the following parameter to the file before coping it over (or copy it again after):
+```bash
+ATTR{serial}=="YOUR_DEVICE_SERIAL"
+```
 
 ```bash
 sudo cp <path/to/flexrayusbinterface>/udev/30-ftdi.rules /etc/udev/rules.d/
@@ -24,8 +30,18 @@ _or_
 ```bash
 sudo <path/to/flexrayusbinterface>/install_udev_rules.sh
 ```
+__NOTE: By default Ubuntu does not let you access your serial adapters. To change that we will add your user to the group 'dialout'. `__
+
+Execute the following in a terminal:
+
+```bash
+sudo usermod -a -G dialout $(whoami)
+```
+This only needs to be done once.
+
 
 ## Defining your robot using YAML
+
 
 The `FlexRayBus` class specifies the correspondence between the physical layout of the connections and their logical counterparts. It stores the serial number of the ftdi device which is directly connected to the computer, the muscles and the ganglia they connect to, user-defined names for easy access to the muscles and configuration parameters for the controllers. All of these can be added to the object in code. However, inputing so much data can be tedious. For this reason, the `Parsers.h` header defines methods for de-serializing a FlexRayBus instance from a `YAML::Node` of the [yaml-cpp](https://github.com/jbeder/yaml-cpp) library. Sub-components of the `FlexRayBus` such as the `Ganglion` or the `Muscle` (all defined in the `FlexRayBus.hpp` header file) may also be de-serialized from `YAML::Node` objects.
 
@@ -68,20 +84,20 @@ Position: *position_ctrl # yaml code describing a PositionCtrl
 
 In order for a `YAML::Node ctrl_repr` to be de-serialized into a `PositionCtrl` or into a `VelocityCtrl` controller instance, it must be a mapping (`ctrl_repr.IsMap() == true`) containing the following mandatory keys:
 
- - `output_pos_max` which maps to a numeric value representing 
- - `output_neg_max` which maps to a numeric value representing 
- - `time_period` which maps to a numeric value representing 
- - `rad_per_encoder_count` which maps to a numeric value representing 
- - `P_gain` which maps to a numeric value representing 
- - `I_gain` which maps to a numeric value representing 
- - `D_gain` which maps to a numeric value representing 
- - `forward_gain` which maps to a numeric value representing 
- - `dead_band` which maps to a numeric value representing 
- - `integral` which maps to a numeric value representing 
- - `integral_pos_min` which maps to a numeric value representing 
- - `integral_pos_max` which maps to a numeric value representing 
- - `sp_pos_min` which maps to a numeric value representing 
- - `sp_pos_max` which maps to a numeric value representing 
+ - `output_pos_max` which maps to a numeric value representing
+ - `output_neg_max` which maps to a numeric value representing
+ - `time_period` which maps to a numeric value representing
+ - `rad_per_encoder_count` which maps to a numeric value representing
+ - `P_gain` which maps to a numeric value representing
+ - `I_gain` which maps to a numeric value representing
+ - `D_gain` which maps to a numeric value representing
+ - `forward_gain` which maps to a numeric value representing
+ - `dead_band` which maps to a numeric value representing
+ - `integral` which maps to a numeric value representing
+ - `integral_pos_min` which maps to a numeric value representing
+ - `integral_pos_max` which maps to a numeric value representing
+ - `sp_pos_min` which maps to a numeric value representing
+ - `sp_pos_max` which maps to a numeric value representing
 
 ```yaml
 # yaml code describing a PositionCtrl or a VelocityCtrl

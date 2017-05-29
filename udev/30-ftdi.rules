@@ -1,2 +1,1 @@
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", MODE:="0666"
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", RUN+="/bin/sh -c 'echo $kernel > /sys/bus/usb/drivers/ftdi_sio/unbind'"
+SUBSYSTEMS=="usb", ATTR{manufacturer}=="FTDI", ATTR{idVendor}=="0403", ATTR{idProduct}=="6014", ATTR{product}=="UM232H", RUN+="/bin/sh -c 'echo -n %k:1.0 > /sys/bus/usb/drivers/ftdi_sio/unbind'"
